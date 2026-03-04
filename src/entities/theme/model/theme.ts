@@ -35,3 +35,8 @@ export function resolveAppTheme(value: string | null | undefined): AppTheme {
 
   return isAppTheme(value) ? value : AppTheme.FINTECH_LIGHT;
 }
+
+export function createThemeCookie(theme: AppTheme): string {
+  const secure = process.env.NODE_ENV === 'production' ? '; secure' : '';
+  return `${THEME_COOKIE_NAME}=${theme}; path=${THEME_COOKIE_OPTIONS.path}; max-age=${THEME_COOKIE_OPTIONS.maxAge}; samesite=${THEME_COOKIE_OPTIONS.sameSite}${secure}`;
+}

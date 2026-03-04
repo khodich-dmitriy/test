@@ -4,12 +4,13 @@ import { ChangeEvent, useState } from 'react';
 
 import {
   AppTheme,
-  THEME_COOKIE_NAME,
-  THEME_COOKIE_OPTIONS,
+  createThemeCookie,
+  isAppTheme,
   THEME_OPTIONS
 } from '@/src/entities/theme/model/theme';
 import styles from '@/src/features/theme/select/ui/theme-switcher.module.css';
 import { ThemeTestId } from '@/src/shared/config/test-ids';
+import Select from '@/src/shared/ui/select/select';
 
 interface ThemeSwitcherProps {
   initialTheme: AppTheme;
@@ -21,11 +22,16 @@ export default function ThemeSwitcher({ initialTheme }: ThemeSwitcherProps) {
   const applyTheme = (nextTheme: AppTheme) => {
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
-    document.cookie = `${THEME_COOKIE_NAME}=${nextTheme}; path=${THEME_COOKIE_OPTIONS.path}; max-age=${THEME_COOKIE_OPTIONS.maxAge}; samesite=${THEME_COOKIE_OPTIONS.sameSite}`;
+    document.cookie = createThemeCookie(nextTheme);
   };
 
   const onChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    applyTheme(event.target.value as AppTheme);
+    const nextTheme = event.target.value;
+    if (!isAppTheme(nextTheme)) {
+      return;
+    }
+
+    applyTheme(nextTheme);
   };
 
   return (
@@ -33,19 +39,13 @@ export default function ThemeSwitcher({ initialTheme }: ThemeSwitcherProps) {
       <label htmlFor="theme-select" className={styles.label}>
         Theme
       </label>
-      <select
+      <Select
         id="theme-select"
         data-testid={ThemeTestId.SELECT}
         value={theme}
-        className={styles.select}
+        options={THEME_OPTIONS}
         onChange={onChange}
-      >
-        {THEME_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      />
     </div>
   );
 }

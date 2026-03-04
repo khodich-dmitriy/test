@@ -1,5 +1,3 @@
-'use client';
-
 import type { ChangeEvent } from 'react';
 
 import styles from '@/src/shared/ui/money-input/money-input.module.css';
