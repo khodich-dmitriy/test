@@ -1,0 +1,36 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.pending {
+  background: #fff6e6;
+  color: #9a5e08;
+  border-color: #f2d2a1;
+}
+
+.processing {
+  background: #e8f4ff;
+  color: #1258a3;
+  border-color: #b8d5f5;
+}
+
+.completed {
+  background: #eaf9ef;
+  color: #1b6d39;
+  border-color: #b8e2c7;
+}
+
+.failed {
+  background: #fff0f1;
+  color: #a12833;
+  border-color: #f1b7be;
+}

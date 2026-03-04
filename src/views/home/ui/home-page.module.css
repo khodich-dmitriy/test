@@ -1,0 +1,36 @@
+.page {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d9e5f4;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(25, 72, 122, 0.08);
+  padding: 20px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  color: #0f2f4f;
+}
+
+.text {
+  margin: 8px 0 14px;
+  color: #4f6f90;
+}
+
+.link {
+  color: #1068d4;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 0 16px;
+  }
+}

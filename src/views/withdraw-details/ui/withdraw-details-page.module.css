@@ -1,0 +1,60 @@
+.page {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d9e5f4;
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(25, 72, 122, 0.08);
+  padding: 20px;
+}
+
+.title {
+  margin: 0 0 12px;
+  color: #0f2f4f;
+  font-size: 24px;
+}
+
+.row {
+  margin: 6px 0;
+  color: #2b4f74;
+}
+
+.rowStrong {
+  margin: 6px 0;
+  color: #1f456c;
+  font-weight: 600;
+}
+
+.statusLine {
+  margin: 10px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muted {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #dbe7f6;
+  color: #5a7898;
+  font-size: 13px;
+}
+
+.mutedRow {
+  margin: 6px 0;
+}
+
+.notFound {
+  color: #c5323d;
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 0 16px;
+  }
+}

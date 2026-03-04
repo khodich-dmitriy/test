@@ -1,0 +1,48 @@
+.fieldWrap {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #214566;
+}
+
+.inputShell {
+  display: flex;
+  align-items: center;
+  border: 1px solid #c5d9ef;
+  border-radius: 12px;
+  background: #fff;
+  min-height: 44px;
+  overflow: hidden;
+}
+
+.inputShell:focus-within {
+  border-color: #2a86f8;
+  box-shadow: 0 0 0 3px rgba(42, 134, 248, 0.18);
+}
+
+.prefix {
+  padding: 0 12px;
+  border-right: 1px solid #dce7f5;
+  color: #4b6b8c;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.input {
+  width: 100%;
+  border: none;
+  outline: none;
+  padding: 11px 12px;
+  font-size: 14px;
+  color: #12314f;
+  background: transparent;
+}
+
+.error .inputShell {
+  border-color: #e24d57;
+}
