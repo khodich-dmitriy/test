@@ -2,19 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 
-import { AppRoute, AuthApiRoute } from '@/src/shared/config/urls';
-import buttonStyles from '@/src/shared/ui/button/button.module.css';
+import { logout } from '@/src/entities/session/api/auth-api';
+import { AppRoute } from '@/src/shared/config/urls';
+import Button from '@/src/shared/ui/button/button';
 
 export default function LogoutButton() {
   const router = useRouter();
 
   return (
-    <button
+    <Button
       type="button"
-      className={`${buttonStyles.button} ${buttonStyles.ghost}`}
+      variant="ghost"
       onClick={async () => {
         try {
-          await fetch(AuthApiRoute.LOGOUT, { method: 'POST' });
+          await logout();
         } finally {
           router.push(AppRoute.LOGIN);
           router.refresh();
@@ -22,6 +23,6 @@ export default function LogoutButton() {
       }}
     >
       Logout
-    </button>
+    </Button>
   );
 }

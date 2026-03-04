@@ -5,26 +5,26 @@
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #d9e5f4;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(25, 72, 122, 0.08);
+  box-shadow: var(--surface-card-shadow);
   padding: 20px;
 }
 
 .title {
   margin: 0;
   font-size: 24px;
-  color: #0f2f4f;
+  color: var(--title-text-color);
 }
 
 .text {
   margin: 8px 0 14px;
-  color: #4f6f90;
+  color: var(--body-text-color);
 }
 
 .link {
-  color: #1068d4;
+  color: var(--link-text-color);
   font-weight: 600;
   text-decoration: none;
 }

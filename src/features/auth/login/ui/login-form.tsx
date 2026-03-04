@@ -3,13 +3,17 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
+import { login, type LoginError } from '@/src/entities/session/api/auth-api';
 import styles from '@/src/features/auth/login/ui/login-form.module.css';
 import { LoginTestId } from '@/src/shared/config/test-ids';
-import { AppRoute, AuthApiRoute } from '@/src/shared/config/urls';
-import buttonStyles from '@/src/shared/ui/button/button.module.css';
+import { AppRoute } from '@/src/shared/config/urls';
+import Button from '@/src/shared/ui/button/button';
+import ControlledTextInput from '@/src/shared/ui/form/controlled-text-input';
+import Heading from '@/src/shared/ui/typography/heading';
+import Text from '@/src/shared/ui/typography/text';
 
 const schema = yup
   .object({
@@ -23,15 +27,19 @@ type LoginFormValues = {
   password: string;
 };
 
+function isLoginError(error: unknown): error is LoginError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as Partial<LoginError>).status === 'number'
+  );
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid, isSubmitting }
-  } = useForm<LoginFormValues>({
+  const methods = useForm<LoginFormValues>({
     resolver: yupResolver(schema),
     mode: 'onChange',
     defaultValues: {
@@ -40,76 +48,65 @@ export default function LoginForm() {
     }
   });
 
-  const onSubmit = handleSubmit(async (values) => {
+  const submitLogin = async (values: LoginFormValues) => {
     setServerError(null);
 
     try {
-      const response = await fetch(AuthApiRoute.LOGIN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values)
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => ({ message: 'Login failed' }))) as {
-          message?: string;
-        };
-        setServerError(payload.message || 'Login failed');
+      await login(values);
+      router.push(AppRoute.WITHDRAW);
+    } catch (error) {
+      if (isLoginError(error)) {
+        setServerError(error.message || 'Login failed');
         return;
       }
 
-      router.push(AppRoute.WITHDRAW);
-    } catch {
       setServerError('Network error. Please retry.');
     }
-  });
+  };
+
+  const onSubmit = methods.handleSubmit(submitLogin);
+  const {
+    formState: { isValid, isSubmitting }
+  } = methods;
 
   return (
     <section className={styles.card}>
-      <h1 className={styles.title}>Login</h1>
-      <p className={styles.hint}>Use demo credentials: demo / demo123</p>
+      <Heading as="h1" className={styles.title}>
+        Login
+      </Heading>
+      <Text className={styles.hint} variant="meta">
+        Use demo credentials: demo / demo123
+      </Text>
 
-      <form onSubmit={onSubmit} className={styles.form}>
-        <div className={styles.field}>
-          <label htmlFor="username" className={styles.label}>
-            Username
-          </label>
-          <input
+      <FormProvider {...methods}>
+        <form onSubmit={onSubmit} className={styles.form}>
+          <ControlledTextInput
+            name="username"
             id="username"
-            type="text"
-            data-testid={LoginTestId.USERNAME_INPUT}
+            label="Username"
+            testId={LoginTestId.USERNAME_INPUT}
             autoComplete="username"
-            className={styles.input}
-            {...register('username')}
           />
-          {errors.username && <p className={styles.errorText}>{errors.username.message}</p>}
-        </div>
-
-        <div className={styles.field}>
-          <label htmlFor="password" className={styles.label}>
-            Password
-          </label>
-          <input
+          <ControlledTextInput
+            name="password"
             id="password"
+            label="Password"
             type="password"
-            data-testid={LoginTestId.PASSWORD_INPUT}
+            testId={LoginTestId.PASSWORD_INPUT}
             autoComplete="current-password"
-            className={styles.input}
-            {...register('password')}
           />
-          {errors.password && <p className={styles.errorText}>{errors.password.message}</p>}
-        </div>
 
-        <button
-          type="submit"
-          disabled={!isValid || isSubmitting}
-          className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.block}`}
-        >
-          {isSubmitting ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
+          <Button type="submit" disabled={!isValid || isSubmitting} block>
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+      </FormProvider>
 
-      {serverError && <p className={styles.serverError}>{serverError}</p>}
+      {serverError && (
+        <Text className={styles.serverError} variant="error">
+          {serverError}
+        </Text>
+      )}
     </section>
   );
 }

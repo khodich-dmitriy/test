@@ -19,23 +19,21 @@
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #d9e5f4;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(25, 72, 122, 0.08);
+  box-shadow: var(--surface-card-shadow);
   padding: 20px;
 }
 
 .title {
   margin: 0;
   font-size: 24px;
-  color: #0f2f4f;
+  color: var(--title-text-color);
 }
 
 .meta {
   margin: 8px 0 0;
-  color: #50708f;
-  font-size: 13px;
 }
 
 .form {
@@ -44,77 +42,8 @@
   gap: 12px;
 }
 
-.field {
-  display: grid;
-  gap: 8px;
-}
-
-.label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #214566;
-}
-
-.input {
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid #c5d9ef;
-  padding: 0 12px;
-  outline: none;
-  font-size: 14px;
-  color: #12314f;
-}
-
-.input:focus {
-  border-color: #2a86f8;
-  box-shadow: 0 0 0 3px rgba(42, 134, 248, 0.18);
-}
-
-.checkboxRow {
-  margin-top: 2px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 1px solid #aac4df;
-  background: #fff;
-  appearance: none;
-  display: inline-grid;
-  place-content: center;
-  margin: 0;
-  cursor: pointer;
-}
-
-.checkbox::after {
-  content: '';
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  transform: scale(0);
-  transition: transform 0.12s ease;
-  background: #1674e8;
-}
-
-.checkbox:checked::after {
-  transform: scale(1);
-}
-
-.checkboxText {
-  font-size: 14px;
-  color: #214566;
-}
-
 .errorText {
   margin: 0;
-  font-size: 12px;
-  color: #cd2f3a;
 }
 
 .actions {
@@ -123,15 +52,10 @@
 
 .bannerTitle {
   margin: 0 0 8px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #153f66;
 }
 
 .bannerText {
   margin: 0 0 14px;
-  color: #49698c;
-  font-size: 13px;
 }
 
 .feedback {
@@ -139,13 +63,13 @@
 }
 
 .errorBox {
-  border: 1px solid #f0b5ba;
-  background: #fff2f3;
+  border: 1px solid var(--error-box-border-color);
+  background: var(--error-box-bg-color);
 }
 
 .successBox {
-  border: 1px solid #b8ddc4;
-  background: #eefbf1;
+  border: 1px solid var(--success-box-border-color);
+  background: var(--success-box-bg-color);
 }
 
 .sideCard {
@@ -156,19 +80,17 @@
 .sideTitle {
   margin: 0;
   font-size: 16px;
-  color: #0f2f4f;
+  color: var(--title-text-color);
 }
 
 .sideText {
   margin: 0;
-  color: #4f6f90;
-  font-size: 13px;
 }
 
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(8, 30, 58, 0.26);
+  background: var(--overlay-backdrop-color);
   border-radius: 18px;
   display: grid;
   place-items: center;
@@ -181,31 +103,13 @@
   gap: 12px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: #ffffff;
-  border: 1px solid #cedef0;
-  box-shadow: 0 12px 26px rgba(16, 51, 87, 0.18);
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #cfe0f6;
-  border-top-color: #1c79ea;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  background: var(--overlay-card-bg-color);
+  border: 1px solid var(--overlay-card-border-color);
+  box-shadow: var(--overlay-card-shadow);
 }
 
 .overlayText {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1f4468;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @media (max-width: 860px) {

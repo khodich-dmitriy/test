@@ -7,23 +7,21 @@
 
 .card {
   width: min(420px, 100%);
-  background: #fff;
-  border: 1px solid #d9e5f4;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   border-radius: 16px;
   padding: 22px;
-  box-shadow: 0 8px 22px rgba(25, 72, 122, 0.08);
+  box-shadow: var(--surface-card-shadow);
 }
 
 .title {
   margin: 0;
   font-size: 24px;
-  color: #0f2f4f;
+  color: var(--title-text-color);
 }
 
 .hint {
   margin: 8px 0 0;
-  color: #50708f;
-  font-size: 13px;
 }
 
 .form {
@@ -32,39 +30,6 @@
   gap: 12px;
 }
 
-.field {
-  display: grid;
-  gap: 8px;
-}
-
-.label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #214566;
-}
-
-.input {
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid #c5d9ef;
-  padding: 0 12px;
-  outline: none;
-  font-size: 14px;
-}
-
-.input:focus {
-  border-color: #2a86f8;
-  box-shadow: 0 0 0 3px rgba(42, 134, 248, 0.18);
-}
-
-.errorText {
-  margin: 0;
-  color: #cd2f3a;
-  font-size: 12px;
-}
-
 .serverError {
   margin: 12px 0 0;
-  color: #cd2f3a;
-  font-size: 13px;
 }

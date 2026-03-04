@@ -1,0 +1,45 @@
+.text {
+  color: var(--text-main);
+}
+
+.body {
+  font-size: 14px;
+  color: var(--body-text-color);
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--meta-text-color);
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--details-muted-text-color);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--error-text-color);
+}
+
+.banner {
+  font-size: 13px;
+  color: var(--banner-text-color);
+}
+
+.bannerTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--banner-title-color);
+}
+
+.overlay {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--overlay-text-color);
+}
+
+.inputError {
+  font-size: 12px;
+  color: var(--error-text-color);
+}

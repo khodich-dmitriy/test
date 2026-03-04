@@ -3,14 +3,22 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import * as yup from 'yup';
+import { useShallow } from 'zustand/react/shallow';
 
+import { WithdrawRequestStatus } from '@/src/features/withdraw/create/model/request-status';
 import { useWithdrawStore } from '@/src/features/withdraw/create/model/withdraw-store';
 import styles from '@/src/features/withdraw/create/ui/withdraw-form.module.css';
 import { WithdrawFormTestId } from '@/src/shared/config/test-ids';
-import buttonStyles from '@/src/shared/ui/button/button.module.css';
-import MoneyInput from '@/src/shared/ui/money-input/money-input';
+import { getWithdrawDetailsRoute } from '@/src/shared/config/urls';
+import Button from '@/src/shared/ui/button/button';
+import ControlledCheckbox from '@/src/shared/ui/form/controlled-checkbox';
+import ControlledMoneyInput from '@/src/shared/ui/form/controlled-money-input';
+import ControlledTextInput from '@/src/shared/ui/form/controlled-text-input';
+import Spinner from '@/src/shared/ui/spinner/spinner';
+import Heading from '@/src/shared/ui/typography/heading';
+import Text from '@/src/shared/ui/typography/text';
 
 type WithdrawFormValues = {
   amount: string;
@@ -32,27 +40,39 @@ const schema: yup.ObjectSchema<WithdrawFormValues> = yup
 export default function WithdrawForm() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
-  const amount = useWithdrawStore((s) => s.amount);
-  const destination = useWithdrawStore((s) => s.destination);
-  const confirm = useWithdrawStore((s) => s.confirm);
-  const status = useWithdrawStore((s) => s.status);
-  const errorMessage = useWithdrawStore((s) => s.errorMessage);
-  const withdrawal = useWithdrawStore((s) => s.withdrawal);
-  const setAmount = useWithdrawStore((s) => s.setAmount);
-  const setDestination = useWithdrawStore((s) => s.setDestination);
-  const setConfirm = useWithdrawStore((s) => s.setConfirm);
-  const submitWithdrawal = useWithdrawStore((s) => s.submitWithdrawal);
-  const retryLastRequest = useWithdrawStore((s) => s.retryLastRequest);
-  const restoreLatestWithdrawal = useWithdrawStore((s) => s.restoreLatestWithdrawal);
-  const resetStore = useWithdrawStore((s) => s.reset);
-
   const {
-    control,
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isValid, isSubmitting }
-  } = useForm<WithdrawFormValues>({
+    amount,
+    destination,
+    confirm,
+    status,
+    errorMessage,
+    withdrawal,
+    setAmount,
+    setDestination,
+    setConfirm,
+    submitWithdrawal,
+    retryLastRequest,
+    restoreLatestWithdrawal,
+    resetStore
+  } = useWithdrawStore(
+    useShallow((state) => ({
+      amount: state.amount,
+      destination: state.destination,
+      confirm: state.confirm,
+      status: state.status,
+      errorMessage: state.errorMessage,
+      withdrawal: state.withdrawal,
+      setAmount: state.setAmount,
+      setDestination: state.setDestination,
+      setConfirm: state.setConfirm,
+      submitWithdrawal: state.submitWithdrawal,
+      retryLastRequest: state.retryLastRequest,
+      restoreLatestWithdrawal: state.restoreLatestWithdrawal,
+      resetStore: state.reset
+    }))
+  );
+
+  const methods = useForm<WithdrawFormValues>({
     resolver: yupResolver(schema),
     mode: 'onChange',
     defaultValues: {
@@ -61,6 +81,11 @@ export default function WithdrawForm() {
       confirm
     }
   });
+  const {
+    handleSubmit,
+    reset,
+    formState: { isValid, isSubmitting }
+  } = methods;
 
   useEffect(() => {
     restoreLatestWithdrawal();
@@ -75,160 +100,161 @@ export default function WithdrawForm() {
     });
   };
 
-  const onSubmit = handleSubmit(async () => {
+  const goToWithdrawDetails = (id: string) => {
+    router.push(getWithdrawDetailsRoute(id));
+  };
+
+  const handleSubmitRequest = async () => {
     setIsRedirecting(true);
     const id = await submitWithdrawal();
     if (id) {
       resetFormState();
-      router.push(`/withdraw/${id}`);
+      goToWithdrawDetails(id);
       return;
     }
     setIsRedirecting(false);
-  });
+  };
 
-  const isBusy = isRedirecting || isSubmitting || status === 'loading';
+  const onSubmit = handleSubmit(handleSubmitRequest);
+
+  const isBusy = isRedirecting || isSubmitting || status === WithdrawRequestStatus.LOADING;
+
+  const handleAmountChange = (value: string) => {
+    setAmount(value);
+  };
+
+  const handleDestinationChange = (value: string) => {
+    setDestination(value);
+  };
+
+  const handleConfirmChange = (checked: boolean) => {
+    setConfirm(checked);
+  };
+
+  const handleRetry = async () => {
+    setIsRedirecting(true);
+    const id = await retryLastRequest();
+    if (id) {
+      resetFormState();
+      goToWithdrawDetails(id);
+      return;
+    }
+    setIsRedirecting(false);
+  };
+
+  const handleOpenLastWithdrawal = () => {
+    if (!withdrawal) {
+      return;
+    }
+
+    goToWithdrawDetails(withdrawal.id);
+  };
 
   return (
     <main className={styles.page}>
       <div className={`${styles.grid} ${isBusy ? styles.dimmed : ''}`}>
         <section className={styles.card}>
-          <h1 className={styles.title}>Withdraw</h1>
-          <p className={styles.meta}>State: {status}</p>
+          <Heading as="h1" className={styles.title}>
+            Withdraw
+          </Heading>
+          <Text className={styles.meta} variant="meta">
+            State: {status}
+          </Text>
 
-          <form onSubmit={onSubmit} className={styles.form}>
-            <Controller
-              control={control}
-              name="amount"
-              render={({ field }) => (
-                <MoneyInput
-                  id="amount"
-                  name="amount"
-                  testId={WithdrawFormTestId.AMOUNT_INPUT}
-                  label="Amount"
-                  value={field.value}
-                  onBlur={field.onBlur}
-                  hasError={Boolean(errors.amount)}
-                  disabled={isBusy}
-                  onChange={(nextValue) => {
-                    field.onChange(nextValue);
-                    setAmount(nextValue);
-                  }}
-                />
-              )}
-            />
-            {errors.amount && <p className={styles.errorText}>{errors.amount.message}</p>}
-
-            <div className={styles.field}>
-              <label htmlFor="destination" className={styles.label}>
-                Destination
-              </label>
-              <input
-                id="destination"
-                type="text"
-                data-testid={WithdrawFormTestId.DESTINATION_INPUT}
-                className={styles.input}
-                {...register('destination', {
-                  onChange: (event) => setDestination(event.target.value)
-                })}
+          <FormProvider {...methods}>
+            <form onSubmit={onSubmit} className={styles.form}>
+              <ControlledMoneyInput
+                name="amount"
+                id="amount"
+                label="Amount"
+                testId={WithdrawFormTestId.AMOUNT_INPUT}
+                disabled={isBusy}
+                onValueChange={handleAmountChange}
+                errorClassName={styles.errorText}
               />
-              {errors.destination && (
-                <p className={styles.errorText}>{errors.destination.message}</p>
-              )}
-            </div>
+              <ControlledTextInput
+                name="destination"
+                id="destination"
+                label="Destination"
+                disabled={isBusy}
+                testId={WithdrawFormTestId.DESTINATION_INPUT}
+                onValueChange={handleDestinationChange}
+              />
+              <ControlledCheckbox
+                name="confirm"
+                id="confirm"
+                label="Confirm withdrawal"
+                disabled={isBusy}
+                testId={WithdrawFormTestId.CONFIRM_CHECKBOX}
+                onValueChange={handleConfirmChange}
+              />
 
-            <Controller
-              control={control}
-              name="confirm"
-              render={({ field }) => (
-                <label htmlFor="confirm" className={styles.checkboxRow}>
-                  <input
-                    id="confirm"
-                    name={field.name}
-                    type="checkbox"
-                    data-testid={WithdrawFormTestId.CONFIRM_CHECKBOX}
-                    className={styles.checkbox}
-                    checked={field.value}
-                    onBlur={field.onBlur}
-                    onChange={(event) => {
-                      field.onChange(event.target.checked);
-                      setConfirm(event.target.checked);
-                    }}
-                  />
-                  <span className={styles.checkboxText}>Confirm withdrawal</span>
-                </label>
-              )}
-            />
-            {errors.confirm && <p className={styles.errorText}>{errors.confirm.message}</p>}
-
-            <div className={styles.actions}>
-              <button
-                type="submit"
-                disabled={!isValid || isBusy}
-                className={`${buttonStyles.button} ${buttonStyles.primary} ${buttonStyles.block}`}
-              >
-                {isBusy ? 'Submitting...' : 'Submit'}
-              </button>
-            </div>
-          </form>
+              <div className={styles.actions}>
+                <Button type="submit" disabled={!isValid || isBusy} block>
+                  {isBusy ? 'Submitting...' : 'Submit'}
+                </Button>
+              </div>
+            </form>
+          </FormProvider>
         </section>
 
         <aside className={`${styles.card} ${styles.sideCard}`}>
-          <h2 className={styles.sideTitle}>Withdrawal Rules</h2>
-          <p className={styles.sideText}>Amount must be greater than 0.</p>
-          <p className={styles.sideText}>Destination is required.</p>
-          <p className={styles.sideText}>You must confirm before submitting.</p>
+          <Heading as="h2" className={styles.sideTitle}>
+            Withdrawal Rules
+          </Heading>
+          <Text className={styles.sideText} variant="body">
+            Amount must be greater than 0.
+          </Text>
+          <Text className={styles.sideText} variant="body">
+            Destination is required.
+          </Text>
+          <Text className={styles.sideText} variant="body">
+            You must confirm before submitting.
+          </Text>
         </aside>
       </div>
 
-      {status === 'error' && (
+      {status === WithdrawRequestStatus.ERROR && (
         <section
           className={`${styles.card} ${styles.feedback} ${styles.errorBox}`}
           aria-live="polite"
         >
-          <p className={styles.bannerTitle}>Request error</p>
-          <p className={styles.bannerText}>{errorMessage}</p>
-          <button
-            type="button"
-            onClick={async () => {
-              setIsRedirecting(true);
-              const id = await retryLastRequest();
-              if (id) {
-                resetFormState();
-                router.push(`/withdraw/${id}`);
-                return;
-              }
-              setIsRedirecting(false);
-            }}
-            disabled={isBusy}
-            className={`${buttonStyles.button} ${buttonStyles.secondary}`}
-          >
+          <Text className={styles.bannerTitle} variant="bannerTitle">
+            Request error
+          </Text>
+          <Text className={styles.bannerText} variant="error">
+            {errorMessage}
+          </Text>
+          <Button type="button" variant="secondary" onClick={handleRetry} disabled={isBusy}>
             Retry
-          </button>
+          </Button>
         </section>
       )}
 
-      {status === 'success' && withdrawal && (
+      {status === WithdrawRequestStatus.SUCCESS && withdrawal && (
         <section
           className={`${styles.card} ${styles.feedback} ${styles.successBox}`}
           aria-live="polite"
         >
-          <p className={styles.bannerTitle}>Latest withdrawal is ready.</p>
-          <p className={styles.bannerText}>Open details page to review current status.</p>
-          <button
-            type="button"
-            className={`${buttonStyles.button} ${buttonStyles.secondary}`}
-            onClick={() => router.push(`/withdraw/${withdrawal.id}`)}
-          >
+          <Text className={styles.bannerTitle} variant="bannerTitle">
+            Latest withdrawal is ready.
+          </Text>
+          <Text className={styles.bannerText} variant="banner">
+            Open details page to review current status.
+          </Text>
+          <Button type="button" variant="secondary" onClick={handleOpenLastWithdrawal}>
             Open last withdrawal
-          </button>
+          </Button>
         </section>
       )}
 
       {isBusy && (
         <div className={styles.overlay} aria-live="assertive" aria-label="Loading">
           <div className={styles.overlayCard}>
-            <div className={styles.spinner} />
-            <p className={styles.overlayText}>Processing withdrawal...</p>
+            <Spinner size={18} />
+            <Text className={styles.overlayText} variant="overlay">
+              Processing withdrawal...
+            </Text>
           </div>
         </div>
       )}

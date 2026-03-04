@@ -1,0 +1,30 @@
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--form-label-color);
+}
+
+.input {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border-color);
+  padding: 0 12px;
+  outline: none;
+  font-size: 14px;
+  color: var(--form-input-text-color);
+  background: var(--input-bg-color);
+}
+
+.input:focus {
+  border-color: var(--input-focus-border-color);
+  box-shadow: 0 0 0 3px var(--focus-ring-color);
+}
+
+.errorText {
+  margin: 0;
+}

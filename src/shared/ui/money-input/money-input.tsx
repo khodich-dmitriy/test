@@ -1,5 +1,7 @@
 'use client';
 
+import type { ChangeEvent } from 'react';
+
 import styles from '@/src/shared/ui/money-input/money-input.module.css';
 
 interface MoneyInputProps {
@@ -64,6 +66,18 @@ export default function MoneyInput({
   hasError,
   testId
 }: MoneyInputProps) {
+  const handleBlur = () => {
+    const normalized = normalizeMoneyOnBlur(value);
+    if (normalized !== value) {
+      onChange(normalized);
+    }
+    onBlur();
+  };
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onChange(sanitizeMoneyInput(event.target.value));
+  };
+
   return (
     <div className={`${styles.fieldWrap} ${hasError ? styles.error : ''}`}>
       {label && (
@@ -84,16 +98,8 @@ export default function MoneyInput({
           autoComplete="off"
           value={value}
           disabled={disabled}
-          onBlur={() => {
-            const normalized = normalizeMoneyOnBlur(value);
-            if (normalized !== value) {
-              onChange(normalized);
-            }
-            onBlur();
-          }}
-          onChange={(event) => {
-            onChange(sanitizeMoneyInput(event.target.value));
-          }}
+          onBlur={handleBlur}
+          onChange={handleChange}
         />
       </div>
     </div>

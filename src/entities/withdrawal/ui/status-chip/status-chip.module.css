@@ -12,25 +12,25 @@
 }
 
 .pending {
-  background: #fff6e6;
-  color: #9a5e08;
-  border-color: #f2d2a1;
+  background: var(--status-pending-bg-color);
+  color: var(--status-pending-text-color);
+  border-color: var(--status-pending-border-color);
 }
 
 .processing {
-  background: #e8f4ff;
-  color: #1258a3;
-  border-color: #b8d5f5;
+  background: var(--status-processing-bg-color);
+  color: var(--status-processing-text-color);
+  border-color: var(--status-processing-border-color);
 }
 
 .completed {
-  background: #eaf9ef;
-  color: #1b6d39;
-  border-color: #b8e2c7;
+  background: var(--status-completed-bg-color);
+  color: var(--status-completed-text-color);
+  border-color: var(--status-completed-border-color);
 }
 
 .failed {
-  background: #fff0f1;
-  color: #a12833;
-  border-color: #f1b7be;
+  background: var(--status-failed-bg-color);
+  color: var(--status-failed-text-color);
+  border-color: var(--status-failed-border-color);
 }

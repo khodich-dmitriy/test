@@ -22,6 +22,6 @@
 }
 
 .select:focus-visible {
-  outline: 3px solid rgba(0, 128, 255, 0.22);
+  outline: 3px solid var(--focus-ring-color);
   outline-offset: 1px;
 }
