@@ -1,0 +1,16 @@
+.page {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 0 16px;
+  }
+}

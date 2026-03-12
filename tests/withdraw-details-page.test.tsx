@@ -7,6 +7,7 @@ import {
   createWithdrawal,
   resetMockWithdrawals
 } from '@/src/entities/withdrawal/model/mock-withdrawal-store';
+import { WithdrawDetailsTestId } from '@/src/shared/config/test-ids';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -26,21 +27,19 @@ describe('страница деталей заявки', () => {
       destination: 'wallet-10',
       idempotencyKey: 'k-10'
     });
-    const ui = WithdrawDetailsPage({ params: { id: created.id } });
+    const page = await WithdrawDetailsPage({ params: Promise.resolve({ id: created.id }) });
+    render(page);
 
-    render(ui);
-
-    expect(await screen.findByText(new RegExp(`id: ${created.id}`, 'i'))).toBeInTheDocument();
-    expect(screen.getByText('Pending')).toBeInTheDocument();
-    expect(screen.getByText(/amount: 100.00 usdt/i)).toBeInTheDocument();
-    expect(screen.getByText(/network: trc20/i)).toBeInTheDocument();
+    expect(await screen.findByTestId(WithdrawDetailsTestId.ID)).toHaveTextContent(created.id);
+    expect(screen.getByTestId(WithdrawDetailsTestId.STATUS)).toHaveTextContent('В ожидании');
+    expect(screen.getByTestId(WithdrawDetailsTestId.AMOUNT)).toHaveTextContent('100,00 USDT');
+    expect(screen.getByTestId(WithdrawDetailsTestId.NETWORK)).toHaveTextContent('TRC20');
   });
 
   it('показывает not found для неизвестного id', async () => {
-    const ui = WithdrawDetailsPage({ params: { id: 'w_missing' } });
+    const page = await WithdrawDetailsPage({ params: Promise.resolve({ id: 'w_missing' }) });
+    render(page);
 
-    render(ui);
-
-    expect(await screen.findByText(/withdrawal not found/i)).toBeInTheDocument();
+    expect(await screen.findByTestId(WithdrawDetailsTestId.NOT_FOUND)).toBeInTheDocument();
   });
 });

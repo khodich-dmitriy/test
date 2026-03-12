@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { unauthorizedResponse } from '@/src/app/api/withdrawals/response';
 import { isAuthenticatedRequest } from '@/src/entities/session/model/auth';
 import {
   createWithdrawal,
@@ -9,7 +10,7 @@ import type { CreateWithdrawalRequest } from '@/src/entities/withdrawal/model/ty
 
 export async function handleCreateWithdrawal(request: Request) {
   if (!isAuthenticatedRequest(request)) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   let payload: CreateWithdrawalRequest;

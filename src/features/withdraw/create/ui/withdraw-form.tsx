@@ -1,18 +1,20 @@
 'use client';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { FormProvider, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 import { useShallow } from 'zustand/react/shallow';
 
+import type { Withdrawal } from '@/src/entities/withdrawal/model/types';
 import { WithdrawRequestStatus } from '@/src/features/withdraw/create/model/request-status';
 import { useWithdrawStore } from '@/src/features/withdraw/create/model/withdraw-store';
 import styles from '@/src/features/withdraw/create/ui/withdraw-form.module.css';
 import { WithdrawFormTestId } from '@/src/shared/config/test-ids';
 import { getWithdrawDetailsRoute } from '@/src/shared/config/urls';
 import Button from '@/src/shared/ui/button/button';
+import buttonStyles from '@/src/shared/ui/button/button.module.css';
 import ControlledCheckbox from '@/src/shared/ui/form/controlled-checkbox';
 import ControlledMoneyInput from '@/src/shared/ui/form/controlled-money-input';
 import ControlledTextInput from '@/src/shared/ui/form/controlled-text-input';
@@ -26,20 +28,12 @@ type WithdrawFormValues = {
   confirm: boolean;
 };
 
-const schema: yup.ObjectSchema<WithdrawFormValues> = yup
-  .object({
-    amount: yup
-      .string()
-      .required('Amount is required')
-      .test('positive', 'Amount must be greater than 0', (value) => Number(value) > 0),
-    destination: yup.string().trim().required('Destination is required'),
-    confirm: yup.boolean().defined().oneOf([true], 'Please confirm withdrawal')
-  })
-  .required();
+interface WithdrawFormProps {
+  onCreated?: (withdrawal: Withdrawal) => void;
+}
 
-export default function WithdrawForm() {
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const router = useRouter();
+export default function WithdrawForm({ onCreated }: WithdrawFormProps) {
+  const { t } = useTranslation();
   const {
     amount,
     destination,
@@ -52,7 +46,6 @@ export default function WithdrawForm() {
     setConfirm,
     submitWithdrawal,
     retryLastRequest,
-    restoreLatestWithdrawal,
     resetStore
   } = useWithdrawStore(
     useShallow((state) => ({
@@ -67,10 +60,19 @@ export default function WithdrawForm() {
       setConfirm: state.setConfirm,
       submitWithdrawal: state.submitWithdrawal,
       retryLastRequest: state.retryLastRequest,
-      restoreLatestWithdrawal: state.restoreLatestWithdrawal,
       resetStore: state.reset
     }))
   );
+  const schema: yup.ObjectSchema<WithdrawFormValues> = yup
+    .object({
+      amount: yup
+        .string()
+        .required(t('withdraw.validation.amountRequired'))
+        .test('positive', t('withdraw.validation.amountPositive'), (value) => Number(value) > 0),
+      destination: yup.string().trim().required(t('withdraw.validation.destinationRequired')),
+      confirm: yup.boolean().defined().oneOf([true], t('withdraw.validation.confirmRequired'))
+    })
+    .required();
 
   const methods = useForm<WithdrawFormValues>({
     resolver: yupResolver(schema),
@@ -87,10 +89,6 @@ export default function WithdrawForm() {
     formState: { isValid, isSubmitting }
   } = methods;
 
-  useEffect(() => {
-    restoreLatestWithdrawal();
-  }, [restoreLatestWithdrawal]);
-
   const resetFormState = () => {
     resetStore();
     reset({
@@ -100,24 +98,24 @@ export default function WithdrawForm() {
     });
   };
 
-  const goToWithdrawDetails = (id: string) => {
-    router.push(getWithdrawDetailsRoute(id));
+  const notifyCreated = (created: Withdrawal) => {
+    if (onCreated) {
+      onCreated(created);
+    }
   };
 
   const handleSubmitRequest = async () => {
-    setIsRedirecting(true);
-    const id = await submitWithdrawal();
-    if (id) {
+    const created = await submitWithdrawal();
+    if (created) {
       resetFormState();
-      goToWithdrawDetails(id);
+      notifyCreated(created);
       return;
     }
-    setIsRedirecting(false);
   };
 
   const onSubmit = handleSubmit(handleSubmitRequest);
 
-  const isBusy = isRedirecting || isSubmitting || status === WithdrawRequestStatus.LOADING;
+  const isBusy = isSubmitting || status === WithdrawRequestStatus.LOADING;
 
   const handleAmountChange = (value: string) => {
     setAmount(value);
@@ -132,33 +130,23 @@ export default function WithdrawForm() {
   };
 
   const handleRetry = async () => {
-    setIsRedirecting(true);
-    const id = await retryLastRequest();
-    if (id) {
+    const created = await retryLastRequest();
+    if (created) {
       resetFormState();
-      goToWithdrawDetails(id);
+      notifyCreated(created);
       return;
     }
-    setIsRedirecting(false);
-  };
-
-  const handleOpenLastWithdrawal = () => {
-    if (!withdrawal) {
-      return;
-    }
-
-    goToWithdrawDetails(withdrawal.id);
   };
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <div className={`${styles.grid} ${isBusy ? styles.dimmed : ''}`}>
         <section className={styles.card}>
           <Heading as="h1" className={styles.title}>
-            Withdraw
+            {t('withdraw.title')}
           </Heading>
           <Text className={styles.meta} variant="meta">
-            State: {status}
+            {t('withdraw.formState', { status: t(`withdraw.formStatus.${status}`) })}
           </Text>
 
           <FormProvider {...methods}>
@@ -166,7 +154,7 @@ export default function WithdrawForm() {
               <ControlledMoneyInput
                 name="amount"
                 id="amount"
-                label="Amount"
+                label={t('withdraw.amount')}
                 testId={WithdrawFormTestId.AMOUNT_INPUT}
                 disabled={isBusy}
                 onValueChange={handleAmountChange}
@@ -175,7 +163,7 @@ export default function WithdrawForm() {
               <ControlledTextInput
                 name="destination"
                 id="destination"
-                label="Destination"
+                label={t('withdraw.destination')}
                 disabled={isBusy}
                 testId={WithdrawFormTestId.DESTINATION_INPUT}
                 onValueChange={handleDestinationChange}
@@ -183,15 +171,20 @@ export default function WithdrawForm() {
               <ControlledCheckbox
                 name="confirm"
                 id="confirm"
-                label="Confirm withdrawal"
+                label={t('withdraw.confirm')}
                 disabled={isBusy}
                 testId={WithdrawFormTestId.CONFIRM_CHECKBOX}
                 onValueChange={handleConfirmChange}
               />
 
               <div className={styles.actions}>
-                <Button type="submit" disabled={!isValid || isBusy} block>
-                  {isBusy ? 'Submitting...' : 'Submit'}
+                <Button
+                  type="submit"
+                  disabled={!isValid || isBusy}
+                  block
+                  data-testid={WithdrawFormTestId.SUBMIT_BUTTON}
+                >
+                  {isBusy ? t('withdraw.submitting') : t('withdraw.submit')}
                 </Button>
               </div>
             </form>
@@ -200,16 +193,16 @@ export default function WithdrawForm() {
 
         <aside className={`${styles.card} ${styles.sideCard}`}>
           <Heading as="h2" className={styles.sideTitle}>
-            Withdrawal Rules
+            {t('withdraw.rulesTitle')}
           </Heading>
           <Text className={styles.sideText} variant="body">
-            Amount must be greater than 0.
+            {t('withdraw.rules.amount')}
           </Text>
           <Text className={styles.sideText} variant="body">
-            Destination is required.
+            {t('withdraw.rules.destination')}
           </Text>
           <Text className={styles.sideText} variant="body">
-            You must confirm before submitting.
+            {t('withdraw.rules.confirm')}
           </Text>
         </aside>
       </div>
@@ -218,15 +211,22 @@ export default function WithdrawForm() {
         <section
           className={`${styles.card} ${styles.feedback} ${styles.errorBox}`}
           aria-live="polite"
+          data-testid={WithdrawFormTestId.ERROR_BANNER}
         >
           <Text className={styles.bannerTitle} variant="bannerTitle">
-            Request error
+            {t('withdraw.error.title')}
           </Text>
           <Text className={styles.bannerText} variant="error">
             {errorMessage}
           </Text>
-          <Button type="button" variant="secondary" onClick={handleRetry} disabled={isBusy}>
-            Retry
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleRetry}
+            disabled={isBusy}
+            data-testid={WithdrawFormTestId.ERROR_RETRY_BUTTON}
+          >
+            {t('withdraw.error.retry')}
           </Button>
         </section>
       )}
@@ -235,29 +235,34 @@ export default function WithdrawForm() {
         <section
           className={`${styles.card} ${styles.feedback} ${styles.successBox}`}
           aria-live="polite"
+          data-testid={WithdrawFormTestId.SUCCESS_BANNER}
         >
           <Text className={styles.bannerTitle} variant="bannerTitle">
-            Latest withdrawal is ready.
+            {t('withdraw.success.title')}
           </Text>
           <Text className={styles.bannerText} variant="banner">
-            Open details page to review current status.
+            {t('withdraw.success.text')}
           </Text>
-          <Button type="button" variant="secondary" onClick={handleOpenLastWithdrawal}>
-            Open last withdrawal
-          </Button>
+          <Link
+            className={`${buttonStyles.button} ${buttonStyles.secondary}`}
+            href={getWithdrawDetailsRoute(withdrawal.id)}
+            data-testid={WithdrawFormTestId.SUCCESS_LINK}
+          >
+            {t('withdraw.success.action')}
+          </Link>
         </section>
       )}
 
       {isBusy && (
-        <div className={styles.overlay} aria-live="assertive" aria-label="Loading">
+        <div className={styles.overlay} aria-live="assertive" aria-label={t('withdraw.overlay.label')}>
           <div className={styles.overlayCard}>
             <Spinner size={18} />
             <Text className={styles.overlayText} variant="overlay">
-              Processing withdrawal...
+              {t('withdraw.overlay.text')}
             </Text>
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

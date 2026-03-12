@@ -1,12 +1,12 @@
 'use client';
 
 import { ChangeEvent, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   AppTheme,
   createThemeCookie,
-  isAppTheme,
-  THEME_OPTIONS
+  isAppTheme
 } from '@/src/entities/theme/model/theme';
 import styles from '@/src/features/theme/select/ui/theme-switcher.module.css';
 import { ThemeTestId } from '@/src/shared/config/test-ids';
@@ -17,7 +17,13 @@ interface ThemeSwitcherProps {
 }
 
 export default function ThemeSwitcher({ initialTheme }: ThemeSwitcherProps) {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<AppTheme>(initialTheme);
+  const options = [
+    { value: AppTheme.FINTECH_LIGHT, label: t('header.themes.fintech') },
+    { value: AppTheme.OCEAN_BREEZE, label: t('header.themes.ocean') },
+    { value: AppTheme.MINT_GLASS, label: t('header.themes.mint') }
+  ];
 
   const applyTheme = (nextTheme: AppTheme) => {
     setTheme(nextTheme);
@@ -37,13 +43,14 @@ export default function ThemeSwitcher({ initialTheme }: ThemeSwitcherProps) {
   return (
     <div className={styles.wrap}>
       <label htmlFor="theme-select" className={styles.label}>
-        Theme
+        {t('header.theme')}
       </label>
       <Select
         id="theme-select"
+        aria-label={t('header.theme')}
         data-testid={ThemeTestId.SELECT}
         value={theme}
-        options={THEME_OPTIONS}
+        options={options}
         onChange={onChange}
       />
     </div>

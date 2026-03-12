@@ -1,9 +1,10 @@
 'use client';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import * as yup from 'yup';
 
 import { login, type LoginError } from '@/src/entities/session/api/auth-api';
@@ -14,13 +15,6 @@ import Button from '@/src/shared/ui/button/button';
 import ControlledTextInput from '@/src/shared/ui/form/controlled-text-input';
 import Heading from '@/src/shared/ui/typography/heading';
 import Text from '@/src/shared/ui/typography/text';
-
-const schema = yup
-  .object({
-    username: yup.string().trim().required('Username is required'),
-    password: yup.string().required('Password is required')
-  })
-  .required();
 
 type LoginFormValues = {
   username: string;
@@ -35,9 +29,29 @@ function isLoginError(error: unknown): error is LoginError {
   );
 }
 
+function resolvePostLoginUrl(redirectTo: string | null): string {
+  if (!redirectTo) {
+    return AppRoute.WITHDRAW;
+  }
+
+  if (!redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
+    return AppRoute.WITHDRAW;
+  }
+
+  return redirectTo;
+}
+
 export default function LoginForm() {
+  const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
+  const schema = yup
+    .object({
+      username: yup.string().trim().required(t('login.errors.usernameRequired')),
+      password: yup.string().required(t('login.errors.passwordRequired'))
+    })
+    .required();
 
   const methods = useForm<LoginFormValues>({
     resolver: yupResolver(schema),
@@ -53,14 +67,15 @@ export default function LoginForm() {
 
     try {
       await login(values);
-      router.push(AppRoute.WITHDRAW);
+      router.push(resolvePostLoginUrl(searchParams.get('redirectTo')));
+      router.refresh();
     } catch (error) {
       if (isLoginError(error)) {
-        setServerError(error.message || 'Login failed');
+        setServerError(error.message || t('login.errors.failed'));
         return;
       }
 
-      setServerError('Network error. Please retry.');
+      setServerError(t('login.errors.network'));
     }
   };
 
@@ -72,10 +87,10 @@ export default function LoginForm() {
   return (
     <section className={styles.card}>
       <Heading as="h1" className={styles.title}>
-        Login
+        {t('login.title')}
       </Heading>
       <Text className={styles.hint} variant="meta">
-        Use demo credentials: demo / demo123
+        {t('login.hint')}
       </Text>
 
       <FormProvider {...methods}>
@@ -83,21 +98,26 @@ export default function LoginForm() {
           <ControlledTextInput
             name="username"
             id="username"
-            label="Username"
+            label={t('login.username')}
             testId={LoginTestId.USERNAME_INPUT}
             autoComplete="username"
           />
           <ControlledTextInput
             name="password"
             id="password"
-            label="Password"
+            label={t('login.password')}
             type="password"
             testId={LoginTestId.PASSWORD_INPUT}
             autoComplete="current-password"
           />
 
-          <Button type="submit" disabled={!isValid || isSubmitting} block>
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          <Button
+            type="submit"
+            disabled={!isValid || isSubmitting}
+            block
+            data-testid={LoginTestId.SUBMIT_BUTTON}
+          >
+            {isSubmitting ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
       </FormProvider>

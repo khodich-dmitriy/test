@@ -9,6 +9,7 @@ interface InternalCreateInput {
 interface MockWithdrawalDb {
   withdrawalsById: Map<string, Withdrawal>;
   idByIdempotencyKey: Map<string, string>;
+  idempotencyKeyById: Map<string, string>;
 }
 
 declare global {
@@ -19,7 +20,8 @@ function getDb(): MockWithdrawalDb {
   if (!globalThis.__mockWithdrawalDb__) {
     globalThis.__mockWithdrawalDb__ = {
       withdrawalsById: new Map<string, Withdrawal>(),
-      idByIdempotencyKey: new Map<string, string>()
+      idByIdempotencyKey: new Map<string, string>(),
+      idempotencyKeyById: new Map<string, string>()
     };
   }
 
@@ -54,6 +56,7 @@ export function createWithdrawal(input: InternalCreateInput): Withdrawal {
 
   db.withdrawalsById.set(withdrawal.id, withdrawal);
   db.idByIdempotencyKey.set(input.idempotencyKey, withdrawal.id);
+  db.idempotencyKeyById.set(withdrawal.id, input.idempotencyKey);
 
   return withdrawal;
 }
@@ -62,8 +65,55 @@ export function getWithdrawalById(id: string): Withdrawal | null {
   return getDb().withdrawalsById.get(id) ?? null;
 }
 
+function listWithdrawalsSorted(): Withdrawal[] {
+  return Array.from(getDb().withdrawalsById.values()).sort((left, right) => {
+    const timeDiff = new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+
+    return right.id.localeCompare(left.id);
+  });
+}
+
+export function listWithdrawalsFeed(cursor: string | null, limit: number): {
+  items: Withdrawal[];
+  nextCursor: string | null;
+  hasMore: boolean;
+} {
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+  const sorted = listWithdrawalsSorted();
+  const startIndex = cursor ? sorted.findIndex((item) => item.id === cursor) + 1 : 0;
+  const resolvedStartIndex = startIndex > 0 ? startIndex : 0;
+  const items = sorted.slice(resolvedStartIndex, resolvedStartIndex + safeLimit);
+  const hasMore = resolvedStartIndex + safeLimit < sorted.length;
+
+  return {
+    items,
+    nextCursor: hasMore && items.length > 0 ? items[items.length - 1].id : null,
+    hasMore
+  };
+}
+
+export function deleteWithdrawal(id: string): boolean {
+  const db = getDb();
+  const existed = db.withdrawalsById.delete(id);
+  if (!existed) {
+    return false;
+  }
+
+  const idempotencyKey = db.idempotencyKeyById.get(id);
+  if (idempotencyKey) {
+    db.idByIdempotencyKey.delete(idempotencyKey);
+    db.idempotencyKeyById.delete(id);
+  }
+
+  return true;
+}
+
 export function resetMockWithdrawals(): void {
   const db = getDb();
   db.withdrawalsById.clear();
   db.idByIdempotencyKey.clear();
+  db.idempotencyKeyById.clear();
 }

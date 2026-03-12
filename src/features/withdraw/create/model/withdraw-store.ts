@@ -8,15 +8,9 @@ import {
 } from '@/src/entities/withdrawal/api/withdrawals-api';
 import type { CreateWithdrawalRequest, Withdrawal } from '@/src/entities/withdrawal/model/types';
 import { WithdrawRequestStatus } from '@/src/features/withdraw/create/model/request-status';
+import { translate } from '@/src/shared/i18n/client';
 
-const STORAGE_KEY = 'withdraw:last-success:v1';
 const FORM_STORAGE_KEY = 'withdraw:form:v1';
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
-
-interface PersistedSuccess {
-  timestamp: number;
-  withdrawal: Withdrawal;
-}
 
 interface LastRequest {
   payload: CreateWithdrawalRequest;
@@ -34,9 +28,8 @@ interface WithdrawState {
   setDestination: (value: string) => void;
   setConfirm: (value: boolean) => void;
   canSubmit: () => boolean;
-  submitWithdrawal: () => Promise<string | null>;
-  retryLastRequest: () => Promise<string | null>;
-  restoreLatestWithdrawal: () => void;
+  submitWithdrawal: () => Promise<Withdrawal | null>;
+  retryLastRequest: () => Promise<Withdrawal | null>;
   reset: () => void;
 }
 
@@ -83,74 +76,38 @@ function isFormValid(state: Pick<WithdrawState, 'amount' | 'destination' | 'conf
 
 function toHumanErrorMessage(error: unknown): string {
   if (isWithdrawNetworkError(error)) {
-    return 'Network error. Please check your connection and retry.';
+    return translate('withdraw.error.network');
   }
 
   if (isWithdrawApiError(error) && error.status === 409) {
-    return 'Request conflict: a withdrawal with this idempotency key already exists.';
+    return translate('withdraw.error.conflict');
   }
 
   if (isWithdrawApiError(error) && error.status === 401) {
-    return 'Session expired. Please sign in again.';
+    return translate('withdraw.error.unauthorized');
   }
 
   if (isWithdrawApiError(error)) {
-    return error.message || 'Request failed.';
+    return error.message || translate('withdraw.error.fallback');
   }
 
-  return 'Unexpected error. Please retry.';
-}
-
-function persistSuccess(withdrawal: Withdrawal, now: number): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const payload: PersistedSuccess = { timestamp: now, withdrawal };
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-}
-
-function loadPersistedSuccess(now: number): Withdrawal | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const raw = sessionStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as PersistedSuccess;
-    if (now - parsed.timestamp > FIVE_MINUTES_MS) {
-      sessionStorage.removeItem(STORAGE_KEY);
-      return null;
-    }
-
-    return parsed.withdrawal;
-  } catch {
-    sessionStorage.removeItem(STORAGE_KEY);
-    return null;
-  }
+  return translate('withdraw.error.unknown');
 }
 
 async function executeSubmit(
   payload: CreateWithdrawalRequest,
-  set: (partial: Partial<WithdrawState>) => void,
-  nowProvider: () => number
-): Promise<string | null> {
+  set: (partial: Partial<WithdrawState>) => void
+): Promise<Withdrawal | null> {
   set({ status: WithdrawRequestStatus.LOADING, errorMessage: null, lastRequest: { payload } });
 
   try {
     const created = await postWithdrawal(payload);
-    persistSuccess(created, nowProvider());
-
     set({
       status: WithdrawRequestStatus.SUCCESS,
       errorMessage: null,
       withdrawal: created
     });
-    return created.id;
+    return created;
   } catch (error) {
     set({
       status: WithdrawRequestStatus.ERROR,
@@ -160,7 +117,7 @@ async function executeSubmit(
   }
 }
 
-function createWithdrawStoreInternal(nowProvider: () => number) {
+function createWithdrawStoreInternal() {
   return create<WithdrawState>()(
     persist(
       (set, get) => ({
@@ -185,7 +142,7 @@ function createWithdrawStoreInternal(nowProvider: () => number) {
             idempotency_key: generateIdempotencyKey()
           };
 
-          return executeSubmit(payload, set, nowProvider);
+          return executeSubmit(payload, set);
         },
         retryLastRequest: async () => {
           const state = get();
@@ -194,13 +151,7 @@ function createWithdrawStoreInternal(nowProvider: () => number) {
             return null;
           }
 
-          return executeSubmit(state.lastRequest.payload, set, nowProvider);
-        },
-        restoreLatestWithdrawal: () => {
-          const restored = loadPersistedSuccess(nowProvider());
-          if (restored) {
-            set({ status: WithdrawRequestStatus.SUCCESS, withdrawal: restored, errorMessage: null });
-          }
+          return executeSubmit(state.lastRequest.payload, set);
         },
         reset: () => set(initialState)
       }),
@@ -217,7 +168,7 @@ function createWithdrawStoreInternal(nowProvider: () => number) {
   );
 }
 
-export const useWithdrawStore = createWithdrawStoreInternal(() => Date.now());
+export const useWithdrawStore = createWithdrawStoreInternal();
 
 export function resetWithdrawStore(): void {
   useWithdrawStore.persist.clearStorage();

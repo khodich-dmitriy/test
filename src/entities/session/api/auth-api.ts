@@ -3,6 +3,7 @@ import {
   request
 } from '@/src/shared/api/http-client';
 import { AuthApiRoute } from '@/src/shared/config/urls';
+import { translate } from '@/src/shared/i18n/client';
 
 interface LoginPayload {
   username: string;
@@ -21,9 +22,13 @@ export interface LoginError {
 async function parseErrorMessage(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as ApiErrorPayload;
-    return payload.message || 'Request failed';
+    if (response.status === 401) {
+      return translate('login.errors.failed');
+    }
+
+    return payload.message || translate('withdraw.error.fallback');
   } catch {
-    return 'Request failed';
+    return translate('withdraw.error.fallback');
   }
 }
 

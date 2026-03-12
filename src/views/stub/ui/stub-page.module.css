@@ -1,0 +1,66 @@
+.page {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+
+.card {
+  background: linear-gradient(135deg, rgba(12, 37, 64, 0.05), rgba(36, 105, 92, 0.08)), var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  border-radius: 20px;
+  box-shadow: var(--surface-card-shadow);
+  padding: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--link-text-color);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--title-text-color);
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.text {
+  margin: 12px 0 0;
+  max-width: 48ch;
+  color: var(--body-text-color);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.primaryAction,
+.secondaryAction {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 10px 16px;
+  text-decoration: none;
+}
+
+.primaryAction {
+  background: var(--link-text-color);
+  color: #fff;
+}
+
+.secondaryAction {
+  border: 1px solid var(--surface-card-border);
+  color: var(--title-text-color);
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 0 16px;
+  }
+}

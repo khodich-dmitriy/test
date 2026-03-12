@@ -14,6 +14,12 @@ export interface CreateWithdrawalRequest {
   idempotency_key: string;
 }
 
+export interface WithdrawalFeedResponse {
+  items: Withdrawal[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 export interface ApiErrorPayload {
   message: string;
 }

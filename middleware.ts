@@ -14,6 +14,11 @@ export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   url.pathname = redirectPath;
   url.search = '';
+
+  if (!isAuthenticated && redirectPath === '/login') {
+    url.searchParams.set('redirectTo', `${request.nextUrl.pathname}${request.nextUrl.search}`);
+  }
+
   return NextResponse.redirect(url);
 }
 

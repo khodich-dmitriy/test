@@ -1,10 +1,31 @@
+.shell {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
 .header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
   backdrop-filter: blur(8px);
   background: var(--header-bg);
   border-bottom: 1px solid var(--header-border);
+  transition:
+    background-color 180ms ease,
+    opacity 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.overlayActive {
+  opacity: 0.84;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.content {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .nav {
@@ -27,4 +48,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .nav {
+    padding: 12px 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 }
