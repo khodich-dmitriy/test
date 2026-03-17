@@ -25,7 +25,27 @@
 .content {
   min-height: 0;
   overflow: auto;
+  position: relative;
   scrollbar-gutter: stable;
+}
+
+.content[data-footer-overlay-active='true'] {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - 112px),
+    rgba(0, 0, 0, 0.9) calc(100% - 64px),
+    rgba(0, 0, 0, 0.5) calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 calc(100% - 112px),
+    rgba(0, 0, 0, 0.9) calc(100% - 64px),
+    rgba(0, 0, 0, 0.5) calc(100% - 24px),
+    transparent 100%
+  );
 }
 
 .nav {

@@ -26,6 +26,7 @@ describe('scroll shell transparency', () => {
     const header = screen.getByTestId(HeaderTestId.ROOT);
     const footer = screen.getByTestId(FooterTestId.ROOT);
 
+    expect(content).toHaveAttribute('data-footer-overlay-active', 'false');
     expect(header).toHaveAttribute('data-overlay-active', 'false');
     expect(footer).toHaveAttribute('data-overlay-active', 'false');
 
@@ -39,5 +40,6 @@ describe('scroll shell transparency', () => {
 
     expect(header).toHaveAttribute('data-overlay-active', 'true');
     expect(footer).toHaveAttribute('data-overlay-active', 'true');
+    expect(content).toHaveAttribute('data-footer-overlay-active', 'true');
   });
 });

@@ -56,7 +56,12 @@ export default function ShellChrome({
         isOverlayActive={isHeaderOverlayActive}
         showLogout={showLogout}
       />
-      <div className={styles.content} data-testid={ShellTestId.CONTENT} ref={contentRef}>
+      <div
+        className={styles.content}
+        data-footer-overlay-active={isFooterOverlayActive}
+        data-testid={ShellTestId.CONTENT}
+        ref={contentRef}
+      >
         {children}
       </div>
       <AppFooter isOverlayActive={isFooterOverlayActive} />
