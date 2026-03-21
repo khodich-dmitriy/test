@@ -44,6 +44,9 @@ export function useWithdrawFeed(latestCreated: Withdrawal | null) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const loadMoreSkeletonTimeoutRef = useRef<number | null>(null);
+  const initialLoadPromiseRef = useRef<Promise<Awaited<ReturnType<typeof fetchWithdrawalsFeed>>> | null>(
+    null
+  );
 
   useEffect(() => {
     return () => {
@@ -61,7 +64,11 @@ export function useWithdrawFeed(latestCreated: Withdrawal | null) {
       setErrorMessage(null);
 
       try {
-        const response = await fetchWithdrawalsFeed(null, WITHDRAW_FEED_PAGE_SIZE);
+        if (!initialLoadPromiseRef.current) {
+          initialLoadPromiseRef.current = fetchWithdrawalsFeed(null, WITHDRAW_FEED_PAGE_SIZE);
+        }
+
+        const response = await initialLoadPromiseRef.current;
         if (cancelled) {
           return;
         }
@@ -74,6 +81,7 @@ export function useWithdrawFeed(latestCreated: Withdrawal | null) {
           setErrorMessage(toErrorMessage(error));
         }
       } finally {
+        initialLoadPromiseRef.current = null;
         if (!cancelled) {
           setIsInitialLoading(false);
         }

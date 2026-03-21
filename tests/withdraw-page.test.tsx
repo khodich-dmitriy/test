@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -464,5 +465,77 @@ describe('страница вывода средств', () => {
       expect(screen.getByTestId(getWithdrawFeedItemTestId('w_1'))).toBeInTheDocument();
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('не дублирует первичную загрузку заявок в StrictMode', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ items: [], nextCursor: null, hasMore: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <StrictMode>
+        <WithdrawPage />
+      </StrictMode>
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    const feedCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).startsWith(WithdrawalApiRoute.FEED)
+    );
+    expect(feedCalls).toHaveLength(1);
+  });
+
+  it('в StrictMode после возврата не зависает на skeleton и показывает заявки', async () => {
+    let resolveFeed: ((response: Response) => void) | null = null;
+    const fetchMock = vi.fn().mockImplementation(() => {
+      return new Promise<Response>((resolve) => {
+        resolveFeed = resolve;
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <StrictMode>
+        <WithdrawPage />
+      </StrictMode>
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    resolveFeed?.(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'w_back',
+              amount: 42,
+              destination: 'wallet-back',
+              status: 'pending',
+              created_at: '2026-03-12T10:00:00.000Z'
+            }
+          ],
+          nextCursor: null,
+          hasMore: false
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId(getWithdrawFeedItemTestId('w_back'))).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId(WithdrawFeedTestId.INITIAL_SKELETON)).not.toBeInTheDocument();
   });
 });
