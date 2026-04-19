@@ -4,3 +4,4 @@ coverage
 npm-debug.log*
 .env*
 .vscode/settings.json
+.worktrees/
