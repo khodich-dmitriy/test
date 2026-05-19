@@ -1,20 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  mergeSupportMessages,
+  playChatNotificationSound,
+  SUPPORT_REACTION_OPTIONS,
+  withReaction
+} from '../../../../../shared/support-chat/chat-core';
 import type { SupportMessage, SupportTicket, SupportUser } from '../../../entities/support/model/types';
 import { SendMessageForm } from '../../../features/chat/send/ui/send-message-form';
 import styles from './ticket-chat-page.module.css';
-
-const REACTION_OPTIONS = [
-  { emoji: '👍', label: 'thumbs up' },
-  { emoji: '❤️', label: 'heart' },
-  { emoji: '🔥', label: 'fire' },
-  { emoji: '👏', label: 'clap' },
-  { emoji: '🎉', label: 'party' },
-  { emoji: '😮', label: 'wow' }
-] as const;
 
 interface TicketPayload {
   ticket: SupportTicket;
@@ -31,11 +28,7 @@ function appendUniqueMessage(
   messages: SupportMessage[],
   nextMessage: SupportMessage
 ): SupportMessage[] {
-  if (messages.some((message) => message.id === nextMessage.id)) {
-    return messages;
-  }
-
-  return [...messages, nextMessage];
+  return mergeSupportMessages(messages, [nextMessage]);
 }
 
 export function TicketChatPage({ ticketId, initialPayload }: Props) {
@@ -45,21 +38,9 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
   const [notification, setNotification] = useState<string | null>(null);
   const [reactionOverrides, setReactionOverrides] = useState<Record<string, string>>({});
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
-
-  async function loadTicket() {
-    try {
-      const response = await fetch(`/v1/support/tickets/${ticketId}`, { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error('Failed to refresh ticket');
-      }
-
-      const data = (await response.json()) as TicketPayload;
-      setPayload(data);
-      setRefreshError(null);
-    } catch (error) {
-      setRefreshError(error instanceof Error ? error.message : 'Failed to refresh ticket');
-    }
-  }
+  const [replyTo, setReplyTo] = useState<SupportMessage | null>(null);
+  const [visibleTranscriptIds, setVisibleTranscriptIds] = useState<Record<string, boolean>>({});
+  const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof EventSource === 'undefined') {
@@ -82,6 +63,7 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
 
         if (nextMessage.sender_role === 'user') {
           setNotification(`New message from ${nextMessage.sender_name}`);
+          playChatNotificationSound(window);
         }
 
         return {
@@ -90,10 +72,43 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
         };
       });
     });
+    eventSource.addEventListener('reaction', ((event: MessageEvent) => {
+      let chatEvent: { reaction?: SupportMessage['reaction'] };
+      try {
+        chatEvent = JSON.parse(event.data) as { reaction?: SupportMessage['reaction'] };
+      } catch {
+        return;
+      }
+
+      if (!chatEvent.reaction) {
+        return;
+      }
+      const reaction = chatEvent.reaction;
+
+      setPayload((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          messages: withReaction(current.messages, reaction)
+        };
+      });
+    }) as EventListener);
     return () => {
       eventSource.close();
     };
   }, [ticketId]);
+
+  useEffect(
+    () => () => {
+      if (touchTimerRef.current) {
+        clearTimeout(touchTimerRef.current);
+      }
+    },
+    []
+  );
 
   const orderedMessages = useMemo(() => payload?.messages ?? [], [payload]);
   const visibleMessages = useMemo(() => {
@@ -133,6 +148,23 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
         return next;
       });
       setRefreshError('Failed to save reaction');
+    }
+  }
+
+  function openReactionOnTouch(event: PointerEvent<HTMLButtonElement>, messageId: string) {
+    if (event.pointerType !== 'touch') {
+      return;
+    }
+
+    touchTimerRef.current = setTimeout(() => {
+      setReactionPickerMessageId(messageId);
+    }, 350);
+  }
+
+  function cancelTouchReaction() {
+    if (touchTimerRef.current) {
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
     }
   }
 
@@ -208,6 +240,12 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                   </span>
                 </div>
                 <p className={styles.text}>{message.text}</p>
+                {message.reply_to ? (
+                  <blockquote className={styles.replyPreview}>
+                    <strong>{message.reply_to.sender_name}</strong>
+                    <span>{message.reply_to.text}</span>
+                  </blockquote>
+                ) : null}
                 {message.attachments && message.attachments.length > 0 ? (
                   <ul className={styles.attachmentList}>
                     {message.attachments.map((attachment) => (
@@ -221,6 +259,30 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                               alt={attachment.name}
                             />
                           </a>
+                        ) : attachment.content_type.startsWith('audio/') ? (
+                          <>
+                            <audio controls src={attachment.url} />
+                            <button
+                              className={styles.transcribeButton}
+                              type="button"
+                              onClick={() =>
+                                setVisibleTranscriptIds((current) => ({
+                                  ...current,
+                                  [attachment.id]: !current[attachment.id]
+                                }))
+                              }
+                            >
+                              Расшифровать
+                            </button>
+                            {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
+                              <p className={styles.transcript}>{attachment.transcript}</p>
+                            ) : null}
+                            {visibleTranscriptIds[attachment.id] && !attachment.transcript ? (
+                              <p className={styles.transcript}>Расшифровка доступна для записанных голосовых сообщений.</p>
+                            ) : null}
+                          </>
+                        ) : attachment.content_type.startsWith('video/') ? (
+                          <video className={styles.videoAttachment} controls src={attachment.url} />
                         ) : (
                           <a href={attachment.url} target="_blank" rel="noreferrer">
                             {attachment.name}
@@ -240,12 +302,15 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                         current === message.id ? null : message.id
                       )
                     }
+                    onPointerDown={(event) => openReactionOnTouch(event, message.id)}
+                    onPointerLeave={cancelTouchReaction}
+                    onPointerUp={cancelTouchReaction}
                   >
                     {reactionOverrides[message.id] ?? message.reaction?.emoji ?? '＋'}
                   </button>
                   {reactionPickerMessageId === message.id ? (
                     <div className={styles.reactionPicker} role="menu">
-                      {REACTION_OPTIONS.map((reaction) => (
+                      {SUPPORT_REACTION_OPTIONS.map((reaction) => (
                         <button
                           key={reaction.emoji}
                           type="button"
@@ -259,6 +324,9 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                       ))}
                     </div>
                   ) : null}
+                  <button className={styles.replyButton} type="button" onClick={() => setReplyTo(message)}>
+                    Reply
+                  </button>
                 </div>
               </li>
             ))}
@@ -268,8 +336,17 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
         <div className={styles.composerWrap}>
           <SendMessageForm
             ticketId={ticketId}
-            onSent={() => {
-              void loadTicket();
+            replyTo={replyTo}
+            onCancelReply={() => setReplyTo(null)}
+            onSent={(message) => {
+              setPayload((current) =>
+                current
+                  ? {
+                      ...current,
+                      messages: appendUniqueMessage(current.messages, message)
+                    }
+                  : current
+              );
             }}
           />
         </div>

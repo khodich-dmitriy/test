@@ -14,6 +14,7 @@ import {
 interface Payload {
   text?: unknown;
   attachment_ids?: unknown;
+  reply_to_message_id?: unknown;
 }
 
 export async function handlePostUserTicketMessage(request: Request, ticketId: string) {
@@ -43,7 +44,9 @@ export async function handlePostUserTicketMessage(request: Request, ticketId: st
     const attachmentIds = Array.isArray(rawAttachmentIds)
       ? rawAttachmentIds.filter((item): item is string => typeof item === 'string')
       : [];
-    const message = appendUserMessage(ticket.id, 'demo', text, attachmentIds);
+    const rawReplyToMessageId = (payload as Payload).reply_to_message_id;
+    const replyToMessageId = typeof rawReplyToMessageId === 'string' ? rawReplyToMessageId : null;
+    const message = appendUserMessage(ticket.id, 'demo', text, attachmentIds, replyToMessageId);
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     if (error instanceof SupportNotFoundError) {

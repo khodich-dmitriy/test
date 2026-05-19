@@ -5,12 +5,11 @@ import { isAuthenticatedRequest } from '../../../entities/session/model/auth';
 import {
   ensureTicketOwnedByUser,
   getTicketById,
-  listMessagesByTicketId,
+  listChatEventsByTicketId,
   SupportAccessError,
   SupportNotFoundError
 } from '../../../entities/support/model/chat-store';
-import { collectMessageDelta } from '../../../entities/support/model/message-delta';
-import type { SupportMessage } from '../../../entities/support/model/types';
+import type { SupportChatEvent } from '../../../entities/support/model/types';
 import { unauthorizedResponse } from '../withdrawals/response';
 
 type StreamAuthMode = 'access-cookie' | 'support-session';
@@ -38,9 +37,10 @@ function resolveTicket(ticketId: string, authMode: StreamAuthMode) {
   return ensureTicketOwnedByUser(getTicketById(ticketId), getDefaultSystemUserId());
 }
 
-function buildSseMessage(message: SupportMessage): Uint8Array {
+function buildSseChatEvent(event: SupportChatEvent): Uint8Array {
   const encoder = new TextEncoder();
-  return encoder.encode(`id: ${message.id}\nretry: 1000\nevent: message\ndata: ${JSON.stringify(message)}\n\n`);
+  const data = event.type === 'message' && event.message ? event.message : event;
+  return encoder.encode(`id: ${event.id}\nretry: 1000\nevent: ${event.type}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 function buildComment(comment: string): Uint8Array {
@@ -96,9 +96,9 @@ export async function handleStreamTicketMessages(
         controller.enqueue(buildComment('connected'));
 
         const lastEventId = request.headers.get('last-event-id');
-        let lastSeenId = lastEventId && lastEventId.length > 0 ? lastEventId : listMessagesByTicketId(ticket.id).at(-1)?.id ?? null;
+        let lastSeenId = lastEventId && lastEventId.length > 0 ? lastEventId : listChatEventsByTicketId(ticket.id).at(-1)?.id ?? null;
 
-        const emitNewMessages = () => {
+        const emitNewEvents = () => {
           try {
             resolveTicket(ticketId, authMode);
           } catch {
@@ -106,21 +106,24 @@ export async function handleStreamTicketMessages(
             return;
           }
 
-          const messages = listMessagesByTicketId(ticket.id);
-          const delta = collectMessageDelta(messages, lastSeenId);
+          const events = listChatEventsByTicketId(ticket.id);
+          const lastIndex = lastSeenId
+            ? events.findIndex((event) => event.id === lastSeenId)
+            : events.length - 1;
+          const delta = lastIndex >= 0 ? events.slice(lastIndex + 1) : events;
 
           if (delta.length) {
-            for (const message of delta) {
-              controller.enqueue(buildSseMessage(message));
+            for (const event of delta) {
+              controller.enqueue(buildSseChatEvent(event));
             }
 
             lastSeenId = delta[delta.length - 1]?.id ?? lastSeenId;
           }
         };
 
-        emitNewMessages();
+        emitNewEvents();
 
-        pollId = setInterval(emitNewMessages, 1000);
+        pollId = setInterval(emitNewEvents, 500);
         keepAliveId = setInterval(() => {
           if (closed) {
             return;

@@ -127,7 +127,7 @@ describe('support-admin ticket chat page', () => {
     expect(closeMock).not.toHaveBeenCalled();
   });
 
-  it('shows a refresh error when reloading after send fails', async () => {
+  it('adds the sent support message locally without a slow full refresh', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
       .mockResolvedValueOnce(
@@ -143,12 +143,6 @@ describe('support-admin ticket chat page', () => {
           { status: 201, headers: { 'content-type': 'application/json' } }
         )
       )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ message: 'Reload failed' }), {
-          status: 500,
-          headers: { 'content-type': 'application/json' }
-        })
-      );
 
     const user = userEvent.setup();
 
@@ -180,10 +174,10 @@ describe('support-admin ticket chat page', () => {
     await user.click(screen.getByRole('button', { name: 'Send' }));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText('Failed to refresh ticket')).toBeInTheDocument();
+    expect(screen.getByText('Thanks for the update')).toBeInTheDocument();
   });
 
   it('disables whitespace-only submissions before sending', async () => {

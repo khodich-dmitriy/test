@@ -54,6 +54,10 @@ export function createWithdrawal(input: InternalCreateInput): Withdrawal {
       withdrawal_id: withdrawal.id,
       subject: `Withdrawal ${withdrawal.id}`,
       status: 'open',
+      support_state: 'active',
+      assigned_staff_id: null,
+      assigned_staff_username: null,
+      last_activity_at: createdAt,
       created_at: createdAt,
       updated_at: createdAt
     });
@@ -63,6 +67,7 @@ export function createWithdrawal(input: InternalCreateInput): Withdrawal {
       sender_role: 'user',
       sender_name: 'demo',
       text: `Created withdrawal request for ${input.amount} to ${input.destination}`,
+      reply_to_message_id: null,
       created_at: createdAt
     });
 

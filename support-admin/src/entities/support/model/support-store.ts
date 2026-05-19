@@ -67,9 +67,10 @@ export function appendSupportMessage(
   ticketId: string,
   senderName: string,
   text: string,
-  attachmentIds: string[] = []
+  attachmentIds: string[] = [],
+  replyToMessageId: string | null = null
 ): SupportMessage {
-  return appendSharedSupportMessage(ticketId, senderName, text, attachmentIds);
+  return appendSharedSupportMessage(ticketId, senderName, text, attachmentIds, replyToMessageId);
 }
 
 export function listSupportStaff(): SupportStaffMember[] {

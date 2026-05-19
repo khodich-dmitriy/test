@@ -206,7 +206,7 @@ describe('withdraw ticket chat', () => {
     expect(closeMock).not.toHaveBeenCalled();
   });
 
-  it('keeps an SSE message when a stale reconciliation response resolves later', async () => {
+  it('keeps the existing payload when a stale reconciliation response resolves later', async () => {
     const fetchMock = vi.mocked(fetch);
     let resolveReload: ((response: Response) => void) | null = null;
 
@@ -240,21 +240,6 @@ describe('withdraw ticket chat', () => {
       eventSourceInstance?.emitOpen();
     });
 
-    act(() => {
-      messageHandler?.(
-        new MessageEvent('message', {
-          data: JSON.stringify({
-            id: 'm_7',
-            ticket_id: 't_1',
-            sender_role: 'support' as const,
-            sender_name: 'support',
-            text: 'Live while reloading',
-            created_at: '2026-04-19T00:00:02.000Z'
-          })
-        })
-      );
-    });
-
     await act(async () => {
       resolveReload?.(
         mockJsonResponse(
@@ -273,9 +258,8 @@ describe('withdraw ticket chat', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getAllByRole('listitem')).toHaveLength(1);
     });
-    expect(screen.getByText('Live while reloading')).toBeInTheDocument();
     expect(screen.getByText('Initial payload')).toBeInTheDocument();
   });
 

@@ -3,6 +3,7 @@ import path from 'node:path';
 
 export type SupportRole = 'admin' | 'support';
 export type TicketStatus = 'open' | 'closed';
+export type TicketSupportState = 'active' | 'inactive';
 
 export interface SystemUser {
   id: string;
@@ -27,6 +28,10 @@ export interface SupportTicket {
   withdrawal_id: string | null;
   subject: string;
   status: TicketStatus;
+  support_state?: TicketSupportState;
+  assigned_staff_id?: string | null;
+  assigned_staff_username?: string | null;
+  last_activity_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +42,7 @@ export interface SupportMessage {
   sender_role: 'user' | 'support';
   sender_name: string;
   text: string;
+  reply_to_message_id?: string | null;
   created_at: string;
 }
 
@@ -46,6 +52,8 @@ export interface SupportMessageAttachment {
   message_id: string | null;
   name: string;
   content_type: string;
+  media_type?: 'file' | 'image' | 'audio' | 'video';
+  transcript?: string | null;
   size: number;
   storage_key: string;
   created_at: string;
@@ -68,6 +76,15 @@ export interface SupportStaff {
   created_at: string;
 }
 
+export interface SupportChatEvent {
+  id: string;
+  ticket_id: string;
+  type: 'message' | 'reaction' | 'assignment' | 'inactive';
+  message_id?: string | null;
+  reaction_id?: string | null;
+  created_at: string;
+}
+
 interface SystemDbShape {
   users: SystemUser[];
   withdrawals: StoredWithdrawal[];
@@ -75,6 +92,7 @@ interface SystemDbShape {
   messages: SupportMessage[];
   message_attachments: SupportMessageAttachment[];
   message_reactions: SupportMessageReaction[];
+  chat_events: SupportChatEvent[];
   staff: SupportStaff[];
 }
 
@@ -97,6 +115,7 @@ function createInitialDb(): SystemDbShape {
     messages: [],
     message_attachments: [],
     message_reactions: [],
+    chat_events: [],
     staff: [
       {
         id: 'staff_admin',
@@ -135,6 +154,7 @@ function parseDb(raw: string): SystemDbShape {
     messages: Array.isArray(parsed.messages) ? parsed.messages : [],
     message_attachments: Array.isArray(parsed.message_attachments) ? parsed.message_attachments : [],
     message_reactions: Array.isArray(parsed.message_reactions) ? parsed.message_reactions : [],
+    chat_events: Array.isArray(parsed.chat_events) ? parsed.chat_events : [],
     staff: Array.isArray(parsed.staff) ? parsed.staff : []
   };
 }

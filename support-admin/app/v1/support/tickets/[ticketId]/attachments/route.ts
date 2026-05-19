@@ -33,6 +33,10 @@ export async function POST(request: Request, context: Props) {
         files.map(async (file) => ({
           name: file.name,
           contentType: file.type || 'application/octet-stream',
+          transcript:
+            typeof formData.get(`transcript:${file.name}`) === 'string'
+              ? String(formData.get(`transcript:${file.name}`))
+              : null,
           size: file.size,
           bytes: new Uint8Array(await file.arrayBuffer())
         }))

@@ -3,9 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { readSystemDb } from '@/shared/mock/system-db';
 import {
   appendUserMessage,
+  assignTicketToAvailableSupport,
   ensureTicketOwnedByUser,
   getTicketByWithdrawalId,
-  listMessagesByTicketId} from '@/src/entities/support/model/chat-store';
+  listChatEventsByTicketId,
+  listMessagesByTicketId,
+  markInactiveSupportTickets,
+  setMessageReaction,
+  uploadTicketAttachments} from '@/src/entities/support/model/chat-store';
 import { createWithdrawal, resetMockWithdrawals } from '@/src/entities/withdrawal/model/mock-withdrawal-store';
 
 describe('shared support mock store', () => {
@@ -81,5 +86,85 @@ describe('shared support mock store', () => {
     expect(messages[messages.length - 1]).toEqual(message);
     expect(after?.updated_at).toBeTruthy();
     expect(after?.updated_at).not.toBe(beforeUpdatedAt);
+  });
+
+  it('stores reply metadata, media transcript metadata, and chat events', () => {
+    resetMockWithdrawals();
+
+    const created = createWithdrawal({
+      amount: 520,
+      destination: 'wallet-media',
+      idempotencyKey: 'shared-k-5'
+    });
+    const ticket = getTicketByWithdrawalId(created.id);
+    const firstMessage = listMessagesByTicketId(ticket.id)[0];
+    const attachments = uploadTicketAttachments(ticket.id, [
+      {
+        name: 'voice.webm',
+        contentType: 'audio/webm',
+        transcript: 'Recognized speech from browser',
+        size: 12,
+        bytes: new TextEncoder().encode('fake-audio')
+      }
+    ]);
+
+    const reply = appendUserMessage(ticket.id, 'demo', 'Reply with voice', [attachments[0].id], firstMessage.id);
+    const messages = listMessagesByTicketId(ticket.id);
+    const events = listChatEventsByTicketId(ticket.id);
+
+    expect(reply.reply_to_message_id).toBe(firstMessage.id);
+    expect(messages.find((message) => message.id === reply.id)?.reply_to).toMatchObject({
+      id: firstMessage.id
+    });
+    expect(reply.attachments?.[0]).toMatchObject({
+      media_type: 'audio',
+      transcript: 'Recognized speech from browser'
+    });
+    expect(events.some((event) => event.type === 'message' && event.message?.id === reply.id)).toBe(true);
+  });
+
+  it('emits reaction events when the single message reaction changes', () => {
+    resetMockWithdrawals();
+
+    const created = createWithdrawal({
+      amount: 610,
+      destination: 'wallet-event',
+      idempotencyKey: 'shared-k-6'
+    });
+    const ticket = getTicketByWithdrawalId(created.id);
+    const message = appendUserMessage(ticket.id, 'demo', 'React to this');
+
+    setMessageReaction(message.id, 'support', 'support', '👍');
+    const reaction = setMessageReaction(message.id, 'support', 'support', '🔥');
+    const events = listChatEventsByTicketId(ticket.id);
+
+    expect(reaction.emoji).toBe('🔥');
+    expect(events.filter((event) => event.type === 'reaction')).toHaveLength(2);
+    expect(events.at(-1)).toMatchObject({
+      type: 'reaction',
+      reaction: expect.objectContaining({ emoji: '🔥' })
+    });
+  });
+
+  it('assigns no more than three active tickets to one support member and marks stale tickets inactive', () => {
+    resetMockWithdrawals();
+
+    const tickets = Array.from({ length: 4 }, (_, index) => {
+      const created = createWithdrawal({
+        amount: 700 + index,
+        destination: `wallet-assign-${index}`,
+        idempotencyKey: `shared-k-assign-${index}`
+      });
+      return getTicketByWithdrawalId(created.id);
+    });
+
+    const assigned = tickets.map((ticket) => assignTicketToAvailableSupport(ticket.id));
+
+    expect(assigned.filter((ticket) => ticket.assigned_staff_username === 'support')).toHaveLength(3);
+    expect(assigned[3].assigned_staff_username).toBe('admin');
+
+    const stale = markInactiveSupportTickets(new Date(Date.now() + 11 * 60 * 1000).toISOString());
+    expect(stale.length).toBeGreaterThanOrEqual(4);
+    expect(stale.every((ticket) => ticket.support_state === 'inactive')).toBe(true);
   });
 });

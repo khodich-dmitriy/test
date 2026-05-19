@@ -7,13 +7,7 @@
 }
 
 .shell::before {
-  content: '';
-  position: absolute;
-  inset: 24px;
-  border-radius: calc(var(--admin-radius-lg) + 8px);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.18));
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 
 .sidebar {
@@ -27,8 +21,7 @@
   background: var(--admin-surface);
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius-lg);
-  box-shadow: var(--admin-shadow);
-  backdrop-filter: blur(18px);
+  box-shadow: none;
 }
 
 .brand {
@@ -61,16 +54,14 @@
   background: transparent;
   border: 1px solid transparent;
   transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 
 .navLink:hover {
   background: var(--admin-surface-muted);
   border-color: var(--admin-border);
   text-decoration: none;
-  transform: translateX(2px);
 }
 
 .navLinkActive {
@@ -98,8 +89,7 @@
   background: var(--admin-surface);
   border: 1px solid var(--admin-border);
   border-radius: var(--admin-radius-lg);
-  box-shadow: var(--admin-shadow);
-  backdrop-filter: blur(18px);
+  box-shadow: none;
 }
 
 .context {

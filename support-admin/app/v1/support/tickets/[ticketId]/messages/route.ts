@@ -13,6 +13,7 @@ interface Props {
 interface Payload {
   text?: unknown;
   attachment_ids?: unknown;
+  reply_to_message_id?: unknown;
 }
 
 export async function POST(request: Request, context: Props) {
@@ -44,11 +45,14 @@ export async function POST(request: Request, context: Props) {
     const attachmentIds = Array.isArray(rawAttachmentIds)
       ? rawAttachmentIds.filter((item): item is string => typeof item === 'string')
       : [];
+    const rawReplyToMessageId = (payload as Payload).reply_to_message_id;
+    const replyToMessageId = typeof rawReplyToMessageId === 'string' ? rawReplyToMessageId : null;
     const message = appendSupportMessage(
       ticketId,
       session.username,
       text,
-      attachmentIds
+      attachmentIds,
+      replyToMessageId
     );
     return NextResponse.json(message, { status: 201 });
   } catch (error) {

@@ -25,16 +25,11 @@
   color: #122033;
   font: inherit;
   line-height: 1.55;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
 }
 
 .input:focus {
   outline: none;
   border-color: rgba(36, 59, 255, 0.34);
-  box-shadow: 0 0 0 4px rgba(36, 59, 255, 0.12);
 }
 
 .footer {
@@ -60,15 +55,12 @@
   padding: 0 18px;
   border: 0;
   border-radius: 999px;
-  background: linear-gradient(135deg, #243bff, #5e35ff);
+  background: #243bff;
   color: #fff;
   font-weight: 800;
-  box-shadow: 0 12px 28px rgba(36, 59, 255, 0.22);
 }
 
-.button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
+
 
 .button:disabled {
   opacity: 0.7;

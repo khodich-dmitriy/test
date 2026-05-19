@@ -35,15 +35,20 @@
 }
 
 .notification {
+  position: sticky;
+  z-index: 3;
+  top: 8px;
   width: fit-content;
   max-width: 100%;
-  margin: 0 0 12px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(20, 184, 166, 0.12);
+  margin: 0 0 12px auto;
+  padding: 10px 14px;
+  border: 1px solid rgba(20, 184, 166, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
   color: #0f766e;
   font-size: 13px;
   font-weight: 700;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
 }
 
 .toolbar {
@@ -132,6 +137,7 @@
   position: relative;
   display: flex;
   gap: 6px;
+  align-items: center;
   margin-top: 8px;
 }
 
@@ -146,6 +152,64 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.replyButton {
+  min-height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--button-primary-bg, #1f6feb);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.replyPreview,
+.replyComposer {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  border-inline-start: 3px solid var(--button-primary-bg, #1f6feb);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--details-muted-text-color);
+  font-size: 12px;
+}
+
+.replyPreview strong {
+  color: var(--title-text-color);
+}
+
+.transcript {
+  margin: 6px 0 0;
+  color: var(--details-muted-text-color);
+  font-size: 12px;
+}
+
+.transcribeButton {
+  width: fit-content;
+  min-height: 28px;
+  margin-top: 6px;
+  border: 1px solid var(--surface-card-border);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--button-primary-bg, #1f6feb);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.videoAttachment {
+  display: block;
+  width: min(220px, 100%);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--surface-card-border);
 }
 
 .reactionPicker {
@@ -197,22 +261,30 @@
   gap: 8px;
 }
 
-.attachments {
+.composerBar {
   display: grid;
-  gap: 8px;
+  grid-template-columns: 36px minmax(0, 1fr) 36px 36px 36px 40px;
+  gap: 6px;
+  align-items: end;
+  border: 1px solid var(--surface-card-border);
+  border-radius: 18px;
+  padding: 6px;
+  background: var(--surface-card-bg);
 }
 
+.iconButton,
 .fileButton {
-  width: fit-content;
-  min-height: 34px;
+  width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--surface-card-border);
+  justify-content: center;
+  border: 0;
   border-radius: 999px;
-  padding: 0 12px;
-  background: var(--surface-card-bg);
+  padding: 0;
+  background: transparent;
   color: var(--title-text-color);
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -236,41 +308,85 @@
   font-size: 13px;
 }
 
-.selectedAttachments li {
-  border: 1px solid var(--surface-card-border);
+.processPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(31, 111, 235, 0.18);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(31, 111, 235, 0.08);
+  color: var(--button-primary-bg, #1f6feb);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.processPanel button {
+  border: 0;
   border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--button-primary-bg, #1f6feb);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.selectedAttachments li {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--surface-card-border);
+  border-radius: 12px;
   padding: 6px 10px;
   background: var(--surface-card-bg);
 }
 
-.label {
-  color: var(--title-text-color);
-  font-size: 13px;
-  font-weight: 600;
+.selectedAttachments span {
+  font-size: 11px;
 }
 
 .input {
-  min-height: 96px;
+  min-height: 36px;
   width: 100%;
-  resize: vertical;
-  border: 1px solid var(--surface-card-border);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--surface-card-bg);
+  max-height: 120px;
+  resize: none;
+  border: 0;
+  padding: 8px 4px;
+  background: transparent;
   color: var(--title-text-color);
   font: inherit;
 }
 
 .sendButton {
-  justify-self: start;
+  width: 40px;
+  height: 36px;
   border: 0;
   border-radius: 999px;
-  padding: 10px 16px;
+  padding: 0;
   background: var(--button-primary-bg, #1f6feb);
   color: #fff;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .message {
+    max-width: 92%;
+  }
+
+  .composerBar {
+    grid-template-columns: 34px minmax(0, 1fr) 34px 34px 34px 38px;
+    gap: 4px;
+  }
+
+  .reactionPicker {
+    position: fixed;
+    inset: auto 12px 82px;
+    justify-content: center;
+  }
 }
 
 .sendButton:disabled {
