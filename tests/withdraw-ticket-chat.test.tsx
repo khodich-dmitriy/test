@@ -188,6 +188,7 @@ describe('withdraw ticket chat', () => {
     render(<WithdrawTicketChat withdrawalId="w_1" />);
 
     expect(await screen.findByText('Initial payload')).toBeInTheDocument();
+    await waitFor(() => expect(openHandler).toBeTruthy());
 
     act(() => {
       eventSourceInstance?.emitOpen();

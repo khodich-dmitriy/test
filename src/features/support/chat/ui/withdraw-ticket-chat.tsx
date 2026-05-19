@@ -13,6 +13,7 @@ import {
   SUPPORT_REACTION_OPTIONS,
   withReaction
 } from '@/shared/support-chat/chat-core';
+import { TranscriptIcon } from '@/shared/support-chat/transcript-icon';
 import type { SupportMessage, SupportTicket } from '@/src/entities/support/model/types';
 import styles from '@/src/features/support/chat/ui/withdraw-ticket-chat.module.css';
 import { WithdrawTicketChatTestId } from '@/src/shared/config/test-ids';
@@ -502,29 +503,36 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
                           />
                         </a>
                       ) : attachment.content_type.startsWith('audio/') ? (
-                        <>
-                          <audio controls src={attachment.url} />
-                          <button
-                            className={styles.transcribeButton}
-                            type="button"
-                            aria-label="Расшифровать аудио"
-                            title="Расшифровать аудио"
-                            onClick={() =>
-                              setVisibleTranscriptIds((current) => ({
-                                ...current,
-                                [attachment.id]: !current[attachment.id]
-                              }))
-                            }
-                          >
-                            ⌁
-                          </button>
+                        <div className={styles.voiceBlock}>
+                          <div className={styles.voiceTopline}>
+                            <audio className={styles.voicePlayer} controls src={attachment.url} />
+                            <div className={styles.voiceWave} aria-hidden="true">
+                              {Array.from({ length: 18 }, (_, index) => (
+                                <span key={index} />
+                              ))}
+                            </div>
+                            <button
+                              className={styles.transcribeButton}
+                              type="button"
+                              aria-label="Расшифровать аудио"
+                              title="Расшифровать аудио"
+                              onClick={() =>
+                                setVisibleTranscriptIds((current) => ({
+                                  ...current,
+                                  [attachment.id]: !current[attachment.id]
+                                }))
+                              }
+                            >
+                              <TranscriptIcon />
+                            </button>
+                          </div>
                           {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
                             <p className={styles.transcript}>{attachment.transcript}</p>
                           ) : null}
                           {visibleTranscriptIds[attachment.id] && !attachment.transcript ? (
                             <p className={styles.transcript}>Расшифровка доступна для записанных голосовых сообщений.</p>
                           ) : null}
-                        </>
+                        </div>
                       ) : attachment.content_type.startsWith('video/') ? (
                         <video className={styles.videoAttachment} controls src={attachment.url} />
                       ) : (
