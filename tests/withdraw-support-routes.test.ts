@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readSystemDb } from '@/shared/mock/system-db';
+import { readSystemDb, withSystemDb } from '@/shared/mock/system-db';
 import { hasSessionRequest } from '@/src/entities/session/model/auth';
 import { getTicketByWithdrawalId } from '@/src/entities/support/model/chat-store';
 import { createWithdrawal, resetMockWithdrawals } from '@/src/entities/withdrawal/model/mock-withdrawal-store';
@@ -63,6 +63,43 @@ describe('withdraw support api routes', () => {
     expect(payload.ticket.withdrawal_id).toBe(created.id);
     expect(payload.messages).toHaveLength(1);
     expect(payload.messages[0].ticket_id).toBe(ticket.id);
+  });
+
+  it('recreates a missing support ticket for an existing authenticated withdrawal', async () => {
+    resetMockWithdrawals();
+    const created = createWithdrawal({
+      amount: 185,
+      destination: 'wallet-missing-ticket',
+      idempotencyKey: 'withdraw-support-missing-ticket'
+    });
+
+    readSystemDb((db) => db);
+    const snapshotBefore = readSystemDb((db) => ({
+      ticketId: db.tickets.find((item) => item.withdrawal_id === created.id)?.id
+    }));
+    expect(snapshotBefore.ticketId).toBeDefined();
+
+    withSystemDb((db) => {
+      db.tickets = db.tickets.filter((item) => item.withdrawal_id !== created.id);
+      db.messages = db.messages.filter((item) => item.ticket_id !== snapshotBefore.ticketId);
+    });
+
+    const response = await getWithdrawalTicket(
+      new Request(`http://localhost/v1/support/withdrawals/${created.id}/ticket`, {
+        headers: {
+          cookie: demoSessionCookie
+        }
+      }),
+      { params: Promise.resolve({ withdrawalId: created.id }) }
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      ticket: { withdrawal_id: string | null };
+      messages: Array<{ text: string }>;
+    };
+    expect(payload.ticket.withdrawal_id).toBe(created.id);
+    expect(payload.messages[0].text).toContain('wallet-missing-ticket');
   });
 
   it('allows the authenticated user to send a message to their own ticket', async () => {

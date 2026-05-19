@@ -155,12 +155,17 @@
 }
 
 .replyButton {
-  min-height: 28px;
-  border: 0;
-  background: transparent;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--surface-card-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--button-primary-bg, #1f6feb);
   font: inherit;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -189,16 +194,19 @@
 }
 
 .transcribeButton {
-  width: fit-content;
-  min-height: 28px;
+  width: 30px;
+  height: 30px;
   margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--surface-card-border);
   border-radius: 999px;
-  padding: 0 10px;
+  padding: 0;
   background: #fff;
   color: var(--button-primary-bg, #1f6feb);
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
 }

@@ -5,7 +5,7 @@ import { unauthorizedResponse } from '@/src/app/api/withdrawals/response';
 import { isAuthenticatedRequest } from '@/src/entities/session/model/auth';
 import {
   ensureTicketOwnedByUser,
-  getTicketByWithdrawalId,
+  getOrCreateTicketByWithdrawalId,
   listMessagesByTicketId,
   SupportAccessError,
   SupportNotFoundError
@@ -18,7 +18,7 @@ export async function handleGetWithdrawalTicket(request: Request, withdrawalId: 
 
   try {
     const ticket = ensureTicketOwnedByUser(
-      getTicketByWithdrawalId(withdrawalId),
+      getOrCreateTicketByWithdrawalId(withdrawalId),
       getDefaultSystemUserId()
     );
 

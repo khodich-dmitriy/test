@@ -141,6 +141,51 @@ export function getTicketByWithdrawalId(withdrawalId: string): SupportTicket {
   return ticket;
 }
 
+export function getOrCreateTicketByWithdrawalId(withdrawalId: string): SupportTicket {
+  return withSystemDb((db) => {
+    const existing = db.tickets.find((item) => item.withdrawal_id === withdrawalId);
+    if (existing) {
+      return existing;
+    }
+
+    const withdrawal = db.withdrawals.find((item) => item.id === withdrawalId);
+    if (!withdrawal) {
+      throw new SupportNotFoundError('Withdrawal not found');
+    }
+
+    const createdAt = new Date().toISOString();
+    const ticket: SupportTicket = {
+      id: `t_${globalThis.crypto.randomUUID()}`,
+      user_id: withdrawal.user_id,
+      withdrawal_id: withdrawal.id,
+      subject: `Withdrawal ${withdrawal.id}`,
+      status: 'open',
+      support_state: 'active',
+      assigned_staff_id: null,
+      assigned_staff_username: null,
+      last_activity_at: createdAt,
+      created_at: createdAt,
+      updated_at: createdAt
+    };
+
+    db.tickets.push(ticket);
+    db.messages.push({
+      id: `m_${globalThis.crypto.randomUUID()}`,
+      ticket_id: ticket.id,
+      sender_role: 'user',
+      sender_name: 'demo',
+      text: `Created withdrawal request for ${withdrawal.amount} to ${withdrawal.destination}`,
+      reply_to_message_id: null,
+      created_at: createdAt
+    });
+    addChatEvent(db, ticket.id, 'message', createdAt, {
+      messageId: db.messages[db.messages.length - 1]?.id ?? null
+    });
+
+    return ticket;
+  });
+}
+
 export function ensureTicketOwnedByUser(ticket: SupportTicket, userId: string): SupportTicket {
   if (ticket.user_id !== userId) {
     throw new SupportAccessError('Access denied');

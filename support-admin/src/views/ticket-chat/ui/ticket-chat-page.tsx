@@ -265,6 +265,8 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                             <button
                               className={styles.transcribeButton}
                               type="button"
+                              aria-label="Расшифровать аудио"
+                              title="Расшифровать аудио"
                               onClick={() =>
                                 setVisibleTranscriptIds((current) => ({
                                   ...current,
@@ -272,7 +274,7 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                                 }))
                               }
                             >
-                              Расшифровать
+                              ⌁
                             </button>
                             {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
                               <p className={styles.transcript}>{attachment.transcript}</p>
@@ -324,8 +326,14 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
                       ))}
                     </div>
                   ) : null}
-                  <button className={styles.replyButton} type="button" onClick={() => setReplyTo(message)}>
-                    Reply
+                  <button
+                    className={styles.replyButton}
+                    type="button"
+                    aria-label="Ответить на сообщение"
+                    title="Ответить на сообщение"
+                    onClick={() => setReplyTo(message)}
+                  >
+                    ↩
                   </button>
                 </div>
               </li>
