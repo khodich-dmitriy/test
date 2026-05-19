@@ -10,9 +10,23 @@ describe('startup scripts', () => {
   it('routes dev and start through the port-cleanup wrapper', async () => {
     expect(packageJson.scripts.dev).toBe('node scripts/run-next-with-port-cleanup.mjs dev');
     expect(packageJson.scripts.start).toBe('node scripts/run-next-with-port-cleanup.mjs start');
+    expect(packageJson.scripts.build).toBe('next build ./withdraw-app');
 
     const startupScript = await import('../scripts/run-next-with-port-cleanup.mjs');
-    expect(startupScript.createNextCommand('dev')).toEqual(['next', 'dev']);
-    expect(startupScript.createNextCommand('start')).toEqual(['next', 'start']);
+    expect(startupScript.createNextCommand('dev')).toEqual(['next', 'dev', './withdraw-app', '-p', '3000']);
+    expect(startupScript.createNextCommand('dev', '3005')).toEqual([
+      'next',
+      'dev',
+      './withdraw-app',
+      '-p',
+      '3005'
+    ]);
+    expect(startupScript.createNextCommand('start')).toEqual([
+      'next',
+      'start',
+      './withdraw-app',
+      '-p',
+      '3000'
+    ]);
   });
 });

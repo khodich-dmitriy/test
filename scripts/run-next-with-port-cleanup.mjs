@@ -4,12 +4,12 @@ import { pathToFileURL } from 'node:url';
 
 const PORT = '3000';
 
-export function createNextCommand(mode) {
+export function createNextCommand(mode, port = PORT) {
   if (mode === 'start') {
-    return ['next', 'start'];
+    return ['next', 'start', './withdraw-app', '-p', port];
   }
 
-  return ['next', 'dev'];
+  return ['next', 'dev', './withdraw-app', '-p', port];
 }
 
 function clearPort(port) {
@@ -39,10 +39,12 @@ function clearPort(port) {
 
 function run() {
   const mode = process.argv[2] === 'start' ? 'start' : 'dev';
+  const portFlagIndex = process.argv.findIndex((arg) => arg === '-p' || arg === '--port');
+  const port = portFlagIndex >= 0 ? process.argv[portFlagIndex + 1] || PORT : PORT;
 
-  clearPort(PORT);
+  clearPort(port);
 
-  const [command, ...args] = createNextCommand(mode);
+  const [command, ...args] = createNextCommand(mode, port);
   const child = spawn(command, args, {
     stdio: 'inherit'
   });

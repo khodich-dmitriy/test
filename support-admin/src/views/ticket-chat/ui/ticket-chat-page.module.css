@@ -1,0 +1,332 @@
+.page {
+  min-height: 100%;
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+  color: #122033;
+  background:
+    radial-gradient(circle at top left, rgba(36, 59, 255, 0.12), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.1), transparent 26%),
+    linear-gradient(180deg, rgba(247, 250, 255, 0.98), rgba(238, 242, 255, 0.92));
+}
+
+.backLink {
+  align-self: start;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  inline-size: fit-content;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+  border-radius: 999px;
+  color: #38506e;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(131, 150, 191, 0.2);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.backLink:hover {
+  text-decoration: none;
+  border-color: rgba(36, 59, 255, 0.24);
+}
+
+.hero,
+.chatShell {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(131, 150, 191, 0.24);
+  border-radius: 28px;
+  box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.hero {
+  padding: 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.heroCopy {
+  display: grid;
+  gap: 10px;
+}
+
+.kicker {
+  margin: 0;
+  color: #5d6b86;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.subtitle {
+  margin: 0;
+  color: #52607a;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.summary {
+  display: inline-grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.summaryBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(36, 59, 255, 0.1);
+  color: #243bff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.summaryMeta {
+  color: #52607a;
+  font-size: 13px;
+}
+
+.chatShell {
+  padding: 20px;
+  display: grid;
+  gap: 20px;
+}
+
+.refreshError {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 237, 240, 0.94);
+  border: 1px solid rgba(161, 15, 43, 0.18);
+  color: #a10f2b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notification {
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.12);
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.toolbar {
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.searchLabel {
+  color: #52607a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.searchInput {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid rgba(131, 150, 191, 0.26);
+  border-radius: 14px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #122033;
+  font: inherit;
+}
+
+.messageList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 360px;
+  max-height: min(62vh, 680px);
+  overflow-y: auto;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(237, 244, 255, 0.68), rgba(232, 248, 244, 0.58));
+  border: 1px solid rgba(131, 150, 191, 0.16);
+  padding: 18px;
+}
+
+.message {
+  display: grid;
+  gap: 8px;
+  width: fit-content;
+  max-width: min(72%, 640px);
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(131, 150, 191, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+.message[data-role='user'] {
+  justify-self: start;
+  background: linear-gradient(180deg, rgba(239, 244, 255, 0.96), rgba(229, 238, 255, 0.92));
+  border-color: rgba(36, 59, 255, 0.12);
+}
+
+.message[data-role='support'] {
+  justify-self: end;
+  background: linear-gradient(180deg, rgba(233, 252, 247, 0.98), rgba(222, 248, 241, 0.92));
+  border-color: rgba(20, 184, 166, 0.14);
+}
+
+.messageMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sender {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.time {
+  color: #6b7a94;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.text {
+  margin: 0;
+  color: #122033;
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.reactions {
+  position: relative;
+  display: flex;
+  gap: 6px;
+}
+
+.reactionButton {
+  min-height: 28px;
+  border: 1px solid rgba(131, 150, 191, 0.22);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #38506e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reactionPicker {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(131, 150, 191, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+}
+
+.reactionPicker button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.attachmentList {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachmentList a {
+  color: #243bff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.attachmentImage {
+  display: block;
+  max-width: min(260px, 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(131, 150, 191, 0.22);
+}
+
+.emptyState {
+  margin: 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #52607a;
+  font-size: 14px;
+}
+
+.composerWrap {
+  padding-top: 4px;
+}
+
+@media (max-width: 960px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+  }
+
+  .chatShell,
+  .hero {
+    padding: 16px;
+  }
+
+  .messageList {
+    min-height: 320px;
+    padding: 12px;
+  }
+
+  .message {
+    max-width: 92%;
+  }
+}

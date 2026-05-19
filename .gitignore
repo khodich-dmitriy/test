@@ -1,6 +1,8 @@
 node_modules
 .next
 coverage
+test-results
+*.tsbuildinfo
 npm-debug.log*
 .env*
 .vscode/settings.json

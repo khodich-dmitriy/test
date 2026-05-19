@@ -54,7 +54,18 @@ export enum WithdrawDetailsTestId {
   STATUS = 'withdraw-details-status',
   AMOUNT = 'withdraw-details-amount',
   NETWORK = 'withdraw-details-network',
+  CHAT = 'withdraw-details-chat',
   NOT_FOUND = 'withdraw-details-not-found'
+}
+
+export enum WithdrawTicketChatTestId {
+  ROOT = 'withdraw-ticket-chat-root',
+  LOADING = 'withdraw-ticket-chat-loading',
+  ERROR = 'withdraw-ticket-chat-error',
+  EMPTY = 'withdraw-ticket-chat-empty',
+  LIST = 'withdraw-ticket-chat-list',
+  INPUT = 'withdraw-ticket-chat-input',
+  SEND_BUTTON = 'withdraw-ticket-chat-send-button'
 }
 
 export function getWithdrawFeedItemTestId(id: string): string {

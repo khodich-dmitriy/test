@@ -7,6 +7,8 @@ const config = [
   ...nextTypeScript,
   {
     ignores: [
+      '**/.next/**',
+      '**/next-env.d.ts',
       '.next/**',
       'node_modules/**',
       'coverage/**',

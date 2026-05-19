@@ -1,31 +1,15 @@
+import {
+  getDefaultSystemUserId,
+  readSystemDb,
+  resetSystemDb,
+  withSystemDb
+} from '@/shared/mock/system-db';
 import type { Withdrawal } from '@/src/entities/withdrawal/model/types';
 
 interface InternalCreateInput {
   amount: number;
   destination: string;
   idempotencyKey: string;
-}
-
-interface MockWithdrawalDb {
-  withdrawalsById: Map<string, Withdrawal>;
-  idByIdempotencyKey: Map<string, string>;
-  idempotencyKeyById: Map<string, string>;
-}
-
-declare global {
-  var __mockWithdrawalDb__: MockWithdrawalDb | undefined;
-}
-
-function getDb(): MockWithdrawalDb {
-  if (!globalThis.__mockWithdrawalDb__) {
-    globalThis.__mockWithdrawalDb__ = {
-      withdrawalsById: new Map<string, Withdrawal>(),
-      idByIdempotencyKey: new Map<string, string>(),
-      idempotencyKeyById: new Map<string, string>()
-    };
-  }
-
-  return globalThis.__mockWithdrawalDb__;
 }
 
 export class DuplicateIdempotencyError extends Error {
@@ -40,40 +24,88 @@ function createWithdrawalId(): string {
 }
 
 export function createWithdrawal(input: InternalCreateInput): Withdrawal {
-  const db = getDb();
-  const existingId = db.idByIdempotencyKey.get(input.idempotencyKey);
-  if (existingId) {
-    throw new DuplicateIdempotencyError();
-  }
+  return withSystemDb((db) => {
+    const existingId = db.withdrawals.find(
+      (item) => item.idempotency_key === input.idempotencyKey
+    )?.id;
+    if (existingId) {
+      throw new DuplicateIdempotencyError();
+    }
 
-  const withdrawal: Withdrawal = {
-    id: createWithdrawalId(),
-    amount: input.amount,
-    destination: input.destination,
-    status: 'pending',
-    created_at: new Date().toISOString()
-  };
+    const createdAt = new Date().toISOString();
+    const withdrawal: Withdrawal = {
+      id: createWithdrawalId(),
+      amount: input.amount,
+      destination: input.destination,
+      status: 'pending',
+      created_at: createdAt
+    };
 
-  db.withdrawalsById.set(withdrawal.id, withdrawal);
-  db.idByIdempotencyKey.set(input.idempotencyKey, withdrawal.id);
-  db.idempotencyKeyById.set(withdrawal.id, input.idempotencyKey);
+    db.withdrawals.push({
+      ...withdrawal,
+      user_id: getDefaultSystemUserId(),
+      idempotency_key: input.idempotencyKey
+    });
 
-  return withdrawal;
+    const ticketId = `t_${globalThis.crypto.randomUUID()}`;
+    db.tickets.push({
+      id: ticketId,
+      user_id: getDefaultSystemUserId(),
+      withdrawal_id: withdrawal.id,
+      subject: `Withdrawal ${withdrawal.id}`,
+      status: 'open',
+      created_at: createdAt,
+      updated_at: createdAt
+    });
+    db.messages.push({
+      id: `m_${globalThis.crypto.randomUUID()}`,
+      ticket_id: ticketId,
+      sender_role: 'user',
+      sender_name: 'demo',
+      text: `Created withdrawal request for ${input.amount} to ${input.destination}`,
+      created_at: createdAt
+    });
+
+    return withdrawal;
+  });
 }
 
 export function getWithdrawalById(id: string): Withdrawal | null {
-  return getDb().withdrawalsById.get(id) ?? null;
+  return readSystemDb((db) => {
+    const withdrawal = db.withdrawals.find((item) => item.id === id);
+    if (!withdrawal) {
+      return null;
+    }
+
+    return {
+      id: withdrawal.id,
+      amount: withdrawal.amount,
+      destination: withdrawal.destination,
+      status: withdrawal.status,
+      created_at: withdrawal.created_at
+    };
+  });
 }
 
 function listWithdrawalsSorted(): Withdrawal[] {
-  return Array.from(getDb().withdrawalsById.values()).sort((left, right) => {
-    const timeDiff = new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
-    if (timeDiff !== 0) {
-      return timeDiff;
-    }
+  return readSystemDb((db) =>
+    db.withdrawals
+      .map((item) => ({
+        id: item.id,
+        amount: item.amount,
+        destination: item.destination,
+        status: item.status,
+        created_at: item.created_at
+      }))
+      .sort((left, right) => {
+        const timeDiff = new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+        if (timeDiff !== 0) {
+          return timeDiff;
+        }
 
-    return right.id.localeCompare(left.id);
-  });
+        return right.id.localeCompare(left.id);
+      })
+  );
 }
 
 export function listWithdrawalsFeed(cursor: string | null, limit: number): {
@@ -96,24 +128,23 @@ export function listWithdrawalsFeed(cursor: string | null, limit: number): {
 }
 
 export function deleteWithdrawal(id: string): boolean {
-  const db = getDb();
-  const existed = db.withdrawalsById.delete(id);
-  if (!existed) {
-    return false;
-  }
+  return withSystemDb((db) => {
+    const previousLength = db.withdrawals.length;
+    db.withdrawals = db.withdrawals.filter((item) => item.id !== id);
+    if (db.withdrawals.length === previousLength) {
+      return false;
+    }
 
-  const idempotencyKey = db.idempotencyKeyById.get(id);
-  if (idempotencyKey) {
-    db.idByIdempotencyKey.delete(idempotencyKey);
-    db.idempotencyKeyById.delete(id);
-  }
+    const relatedTicketIds = db.tickets.filter((ticket) => ticket.withdrawal_id === id).map((ticket) => ticket.id);
+    if (relatedTicketIds.length > 0) {
+      db.tickets = db.tickets.filter((ticket) => !relatedTicketIds.includes(ticket.id));
+      db.messages = db.messages.filter((message) => !relatedTicketIds.includes(message.ticket_id));
+    }
 
-  return true;
+    return true;
+  });
 }
 
 export function resetMockWithdrawals(): void {
-  const db = getDb();
-  db.withdrawalsById.clear();
-  db.idByIdempotencyKey.clear();
-  db.idempotencyKeyById.clear();
+  resetSystemDb();
 }

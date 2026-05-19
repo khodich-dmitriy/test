@@ -1,0 +1,117 @@
+:root {
+  color-scheme: light;
+  --admin-bg: #eef3fb;
+  --admin-bg-strong: #f8fbff;
+  --admin-surface: rgba(255, 255, 255, 0.9);
+  --admin-surface-solid: #ffffff;
+  --admin-surface-muted: rgba(241, 246, 255, 0.92);
+  --admin-border: rgba(46, 71, 120, 0.16);
+  --admin-border-strong: rgba(46, 71, 120, 0.24);
+  --admin-text: #12213a;
+  --admin-text-muted: #52607b;
+  --admin-accent: #2457ff;
+  --admin-accent-strong: #1738c2;
+  --admin-accent-soft: rgba(36, 87, 255, 0.12);
+  --admin-shadow: 0 28px 60px rgba(20, 36, 72, 0.14);
+  --admin-radius-lg: 24px;
+  --admin-radius-md: 16px;
+  --admin-radius-sm: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(36, 87, 255, 0.16), transparent 40%),
+    radial-gradient(circle at top right, rgba(92, 126, 255, 0.15), transparent 35%),
+    var(--admin-bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.5)),
+    var(--admin-bg);
+  color: var(--admin-text);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(36, 87, 255, 0.03) 0%, transparent 38%),
+    linear-gradient(315deg, rgba(14, 23, 40, 0.025) 0%, transparent 28%);
+}
+
+a {
+  color: var(--admin-accent-strong);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text);
+}
+
+input,
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 12px;
+}
+
+button {
+  background: linear-gradient(135deg, var(--admin-accent), var(--admin-accent-strong));
+  border-color: transparent;
+  color: #fff;
+  cursor: pointer;
+  padding: 10px 14px;
+  box-shadow: 0 10px 20px rgba(36, 87, 255, 0.18);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--admin-accent-soft);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin-top: 0;
+  letter-spacing: -0.03em;
+}
+
+p {
+  line-height: 1.55;
+}

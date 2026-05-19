@@ -1,0 +1,175 @@
+.shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  min-height: 100vh;
+  color: var(--admin-text);
+}
+
+.shell::before {
+  content: '';
+  position: absolute;
+  inset: 24px;
+  border-radius: calc(var(--admin-radius-lg) + 8px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.18));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sidebar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: start;
+  gap: 24px;
+  padding: 32px 20px;
+  margin: 24px 12px 24px 24px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  display: grid;
+  gap: 4px;
+}
+
+.brandTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.brandSubtitle {
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.nav {
+  display: grid;
+  gap: 8px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: var(--admin-text);
+  background: transparent;
+  border: 1px solid transparent;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.navLink:hover {
+  background: var(--admin-surface-muted);
+  border-color: var(--admin-border);
+  text-decoration: none;
+  transform: translateX(2px);
+}
+
+.navLinkActive {
+  background: var(--admin-accent-soft);
+  border-color: rgba(36, 87, 255, 0.18);
+  color: var(--admin-accent-strong);
+}
+
+.frame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  padding: 24px 24px 24px 12px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  margin: 0 0 16px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.context {
+  display: grid;
+  gap: 4px;
+}
+
+.contextLabel {
+  color: var(--admin-text-muted);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.contextValue {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.content {
+  min-width: 0;
+  padding: 6px 2px 2px;
+}
+
+.logout {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell::before {
+    inset: 14px;
+  }
+
+  .sidebar,
+  .frame {
+    margin: 14px;
+  }
+
+  .frame {
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .contextValue {
+    flex-wrap: wrap;
+  }
+}

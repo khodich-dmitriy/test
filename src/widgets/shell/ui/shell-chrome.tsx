@@ -62,7 +62,7 @@ export default function ShellChrome({
     let isRefreshing = false;
     let lastRefreshAttemptAt = 0;
 
-    const refreshAccessToken = async (source: 'timer' | 'activity') => {
+    const refreshAccessToken = async (source: 'timer' | 'activity' | 'startup') => {
       if (isDisposed || isRefreshing || document.visibilityState === 'hidden') {
         return;
       }
@@ -90,6 +90,8 @@ export default function ShellChrome({
     const triggerRefreshByActivity = () => {
       void refreshAccessToken('activity');
     };
+
+    void refreshAccessToken('startup');
 
     const intervalId = window.setInterval(triggerRefreshByTimer, ACCESS_REFRESH_INTERVAL_MS);
     window.addEventListener('focus', triggerRefreshByActivity);

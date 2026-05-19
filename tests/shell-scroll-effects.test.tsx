@@ -87,6 +87,22 @@ describe('scroll shell transparency', () => {
     expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
   });
 
+  it('performs background token refresh immediately on private shell mount', async () => {
+    render(
+      <I18nProvider initialLanguage={AppLanguage.RU}>
+        <ShellChrome initialTheme={AppTheme.FINTECH_LIGHT} showLogout>
+          <div>content</div>
+        </ShellChrome>
+      </I18nProvider>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(AuthApiRoute.REFRESH, { method: 'POST' });
+  });
+
   it('does not perform background refresh in public shell', async () => {
     render(
       <I18nProvider initialLanguage={AppLanguage.RU}>

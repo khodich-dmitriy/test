@@ -16,6 +16,10 @@ vi.mock('next/navigation', () => ({
   })
 }));
 
+vi.mock('@/src/features/support/chat/ui/withdraw-ticket-chat', () => ({
+  WithdrawTicketChat: () => null
+}));
+
 describe('страница деталей заявки', () => {
   beforeEach(() => {
     resetMockWithdrawals();

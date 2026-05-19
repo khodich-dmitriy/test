@@ -18,7 +18,27 @@ npm run dev
 
 Открыть: `http://localhost:3000/withdraw`
 
-Если нет сессии, будет редирект на `http://localhost:3000/login`.
+Основное приложение вынесено в отдельную папку `withdraw-app/`.
+
+### Отдельная админка поддержки
+
+Админка запускается отдельным приложением и отдельным процессом:
+
+```bash
+npm run dev:support-admin
+```
+
+Открыть: `http://localhost:3001/login`
+
+Демо логины:
+- `admin / admin123` (может добавлять пользователей поддержки)
+- `support / support123`
+
+Отдельные скрипты:
+- `npm run build:support-admin`
+- `npm run start:support-admin`
+
+Если нет сессии, будет редирект на `http://localhost:3001/login`.
 
 После успешного создания выполняется переход на страницу заявки:
 `http://localhost:3000/withdraw/{id}`
@@ -43,14 +63,31 @@ npm run e2e
 - `POST /auth/logout`
 - `POST /v1/withdrawals`
 - `GET /v1/withdrawals/{id}`
+- `GET /v1/support/withdrawals/{withdrawalId}/ticket` (чат по заявке для пользователя)
+- `POST /v1/support/tickets/{ticketId}/messages` (ответ пользователя в чат)
+- `GET /v1/support/tickets/{ticketId}/stream` (SSE для пользовательского чата)
+
+Support-admin (отдельное приложение на `:3001`):
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /v1/support/users`
+- `GET /v1/support/users/{userId}`
+- `GET /v1/support/tickets/{ticketId}`
+- `POST /v1/support/tickets/{ticketId}/messages`
+- `GET /v1/support/tickets/{ticketId}/stream` (SSE)
+- `GET /v1/support/staff` (admin only)
+- `POST /v1/support/staff` (admin only)
 
 Route handlers расположены в:
 
-- `app/auth/login/route.ts`
-- `app/auth/refresh/route.ts`
-- `app/auth/logout/route.ts`
-- `app/v1/withdrawals/route.ts`
-- `app/v1/withdrawals/[id]/route.ts`
+- `withdraw-app/app/auth/login/route.ts`
+- `withdraw-app/app/auth/refresh/route.ts`
+- `withdraw-app/app/auth/logout/route.ts`
+- `withdraw-app/app/v1/withdrawals/route.ts`
+- `withdraw-app/app/v1/withdrawals/[id]/route.ts`
+- `withdraw-app/app/v1/support/withdrawals/[withdrawalId]/ticket/route.ts`
+- `withdraw-app/app/v1/support/tickets/[ticketId]/messages/route.ts`
+- `withdraw-app/app/v1/support/tickets/[ticketId]/stream/route.ts`
 
 ## Mock Auth
 
@@ -65,7 +102,15 @@ Route handlers расположены в:
 - Если refresh успешен, данные формы не теряются.
 - Logout очищает оба cookie.
 - Кнопка `Logout` расположена только в private layout header.
-- Middleware (`middleware.ts`) защищает приложение и редиректит неавторизованных на `/login`.
+- Middleware (`withdraw-app/middleware.ts`) защищает приложение и редиректит неавторизованных на `/login`.
+
+## Общий mock-store между приложениями
+
+`main app (:3000)` и `support-admin (:3001)` используют общее файловое mock-хранилище:
+- файл по умолчанию: `/tmp/testfront-shared-mock-db.json`
+- можно переопределить переменной окружения: `MOCK_SYSTEM_DB_FILE_PATH`
+
+Это позволяет отлаживать чат и обращения поддержки между двумя отдельными локальными процессами.
 
 ## Что реализовано
 
@@ -89,6 +134,8 @@ Route handlers расположены в:
 - После успеха отображаются созданная заявка и её статус (через `GET /v1/withdrawals/{id}`)
 - После успешного submit происходит redirect на отдельную страницу заявки `/withdraw/[id]`
 - Страница `/withdraw/[id]` загружает заявку на сервере (без клиентского повторного запроса)
+- На странице `/withdraw/[id]` доступен пользовательский чат поддержки по конкретной заявке
+- Чат в `withdraw-app` и `support-admin` синхронизируется в realtime через SSE и общее mock-хранилище
 - Optional:
   - восстановление последней успешной заявки после reload (до 5 минут, `sessionStorage`)
 
@@ -101,7 +148,7 @@ Route handlers расположены в:
   - `src/widgets` — компоновка интерфейса (`header`)
   - `src/pages` — page-level композиции
   - `src/app` — серверные обработчики приложения (для thin routes)
-- `app/*` оставлен как тонкий routing слой Next.js (страницы и route handlers делегируют в `src/*`).
+- `withdraw-app/app/*` оставлен как тонкий routing слой Next.js (страницы и route handlers делегируют в `src/*`).
 - `Zustand` store (`src/features/withdraw/create/model/withdraw-store.ts`) управляет:
   - формой,
   - статусами запроса,
@@ -124,11 +171,11 @@ Route handlers расположены в:
 
 ## Структура
 
-- `app/(public)/layout.tsx` — layout публичных роутов
-- `app/(public)/login/page.tsx` — страница входа
-- `app/(private)/layout.tsx` — layout приватных роутов
-- `app/(private)/withdraw/page.tsx` — страница Withdraw
-- `app/(private)/withdraw/[id]/page.tsx` — отдельная страница созданной заявки
+- `withdraw-app/app/(public)/layout.tsx` — layout публичных роутов
+- `withdraw-app/app/(public)/login/page.tsx` — страница входа
+- `withdraw-app/app/(private)/layout.tsx` — layout приватных роутов
+- `withdraw-app/app/(private)/withdraw/page.tsx` — страница Withdraw
+- `withdraw-app/app/(private)/withdraw/[id]/page.tsx` — отдельная страница созданной заявки
 - `src/pages/*` — page-compositions
 - `src/widgets/header/ui/app-header.tsx` — общий header c Logout
 - `src/features/withdraw/create/ui/withdraw-form.tsx` — форма вывода
@@ -137,7 +184,7 @@ Route handlers расположены в:
 - `src/entities/withdrawal/*` — типы, api, форматтеры, status-chip, mock-store
 - `src/entities/session/*` — auth model и redirect rules
 - `src/shared/ui/money-input/money-input.tsx` — MoneyInput для суммы
-- `middleware.ts` — защита маршрутов
-- `src/app/api/*` — серверные обработчики (используются route wrappers в `app/*`)
+- `withdraw-app/middleware.ts` — защита маршрутов
+- `src/app/api/*` — серверные обработчики (используются route wrappers в `withdraw-app/app/*`)
 - `e2e/*.spec.ts` — Playwright e2e сценарии (auth, retry, refresh flow)
 - `tests/withdraw-page.test.tsx` — основные тесты сценариев

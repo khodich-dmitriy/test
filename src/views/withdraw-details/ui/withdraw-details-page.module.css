@@ -48,6 +48,10 @@
   margin: 6px 0;
 }
 
+.chatSection {
+  margin-top: 20px;
+}
+
 .notFound {
   color: var(--error-text-color);
   font-weight: 600;

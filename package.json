@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/run-next-with-port-cleanup.mjs dev",
-    "build": "next build",
+    "dev:support-admin": "node scripts/run-support-admin-with-port-cleanup.mjs dev",
+    "build": "next build ./withdraw-app",
+    "build:support-admin": "next build ./support-admin",
     "start": "node scripts/run-next-with-port-cleanup.mjs start",
+    "start:support-admin": "node scripts/run-support-admin-with-port-cleanup.mjs start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",

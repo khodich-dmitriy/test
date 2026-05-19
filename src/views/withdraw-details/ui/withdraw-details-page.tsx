@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDateTime, formatUsdtAmount } from '@/src/entities/withdrawal/lib/formatters';
 import type { Withdrawal } from '@/src/entities/withdrawal/model/types';
 import StatusChip from '@/src/entities/withdrawal/ui/status-chip/status-chip';
+import { WithdrawTicketChat } from '@/src/features/support/chat/ui/withdraw-ticket-chat';
 import { WithdrawDetailsTestId } from '@/src/shared/config/test-ids';
 import { resolveAppLanguage } from '@/src/shared/i18n/config';
 import styles from '@/src/views/withdraw-details/ui/withdraw-details-page.module.css';
@@ -60,6 +61,10 @@ export default function WithdrawDetailsPage({ withdrawal }: { withdrawal: Withdr
           </p>
           <p className={styles.mutedRow}>{t('withdraw.details.settlement')}</p>
         </div>
+
+        <section className={styles.chatSection} data-testid={WithdrawDetailsTestId.CHAT}>
+          <WithdrawTicketChat withdrawalId={withdrawal.id} />
+        </section>
       </section>
     </main>
   );

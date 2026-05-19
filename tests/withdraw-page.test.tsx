@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { StrictMode } from 'react';
 import userEvent from '@testing-library/user-event';
+import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import WithdrawPage from '@/app/(private)/withdraw/page';

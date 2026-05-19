@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { ensureSystemUserByUsername } from '@/shared/mock/system-db';
 import {
   AUTH_ACCESS_COOKIE_NAME,
   AUTH_ACCESS_COOKIE_VALUE,
@@ -28,6 +29,8 @@ export async function handleLogin(request: Request) {
   if (!isValidMockCredentials(username, password)) {
     return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
   }
+
+  ensureSystemUserByUsername(username);
 
   const response = NextResponse.json({ ok: true }, { status: 200 });
   response.cookies.set({

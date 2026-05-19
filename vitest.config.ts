@@ -15,6 +15,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@/app': path.resolve(__dirname, 'withdraw-app/app'),
+      '@/middleware': path.resolve(__dirname, 'withdraw-app/middleware.ts'),
       '@': path.resolve(__dirname, '.')
     }
   }
