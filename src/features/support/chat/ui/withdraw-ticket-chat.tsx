@@ -268,10 +268,6 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
 
     const eventSource = new EventSource(`/v1/support/tickets/${payload.ticket.id}/stream`);
 
-    eventSource.addEventListener('open', () => {
-      void loadTicket({ preserveExisting: true });
-    });
-
     eventSource.addEventListener('message', (event) => {
       let nextMessage: SupportMessage;
 

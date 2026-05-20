@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { fireEvent, render, screen } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -169,5 +172,15 @@ describe('scroll shell transparency', () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByTestId(ShellTestId.NAVIGATION_PROGRESS)).toBeInTheDocument();
+  });
+
+  it('does not mask the whole scroll container while the footer overlay is active', () => {
+    const shellStyles = readFileSync(
+      path.join(process.cwd(), 'src/widgets/header/ui/app-header.module.css'),
+      'utf8'
+    );
+
+    expect(shellStyles).not.toContain('mask-image');
+    expect(shellStyles).not.toContain('-webkit-mask-image');
   });
 });

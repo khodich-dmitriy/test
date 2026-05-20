@@ -205,102 +205,111 @@ describe('withdraw ticket chat', () => {
     expect(screen.getAllByText('Repeated message')).toHaveLength(1);
   });
 
-  it('preserves payload when a later reload fails after the stream connects', async () => {
+  it('does not reload the full ticket when the live stream opens', async () => {
     const fetchMock = vi.mocked(fetch);
-    fetchMock
-      .mockResolvedValueOnce(
-        mockJsonResponse(
-          createTicketPayload([
-            {
-              id: 'm_4',
-              ticket_id: 't_1',
-              sender_role: 'support',
-              sender_name: 'support',
-              text: 'Initial payload',
-              created_at: '2026-04-19T00:00:01.000Z'
-            }
-          ])
-        )
+    fetchMock.mockResolvedValueOnce(
+      mockJsonResponse(
+        createTicketPayload([
+          {
+            id: 'm_initial',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Initial payload',
+            created_at: '2026-04-19T00:00:01.000Z'
+          }
+        ])
       )
-      .mockRejectedValueOnce(new Error('Reload failed'));
+    );
 
     render(<WithdrawTicketChat withdrawalId="w_1" />);
 
     expect(await screen.findByText('Initial payload')).toBeInTheDocument();
-    await waitFor(() => expect(openHandler).toBeTruthy());
+    await waitFor(() => expect(eventSourceInstance).toBeTruthy());
 
     act(() => {
       eventSourceInstance?.emitOpen();
     });
 
-    expect(await screen.findByText('Initial payload')).toBeInTheDocument();
-    expect(await screen.findByTestId('withdraw-ticket-chat-error')).toHaveTextContent(
-      'Network error. Please try again.'
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves payload when the live stream errors without reloading the full ticket', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      mockJsonResponse(
+        createTicketPayload([
+          {
+            id: 'm_4',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Initial payload',
+            created_at: '2026-04-19T00:00:01.000Z'
+          }
+        ])
+      )
     );
-    expect(closeMock).not.toHaveBeenCalled();
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    expect(await screen.findByText('Initial payload')).toBeInTheDocument();
+    await waitFor(() => expect(eventSourceInstance).toBeTruthy());
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     act(() => {
       eventSourceInstance?.emitError();
     });
 
+    expect(screen.getByText('Initial payload')).toBeInTheDocument();
+    expect(screen.getByText('Live updates are reconnecting...')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(closeMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the existing payload when a stale reconciliation response resolves later', async () => {
+  it('keeps the existing payload when live messages arrive after stream connection', async () => {
     const fetchMock = vi.mocked(fetch);
-    let resolveReload: ((response: Response) => void) | null = null;
-
-    fetchMock
-      .mockResolvedValueOnce(
-        mockJsonResponse(
-          createTicketPayload([
-            {
-              id: 'm_6',
-              ticket_id: 't_1',
-              sender_role: 'support',
-              sender_name: 'support',
-              text: 'Initial payload',
-              created_at: '2026-04-19T00:00:01.000Z'
-            }
-          ])
-        )
+    fetchMock.mockResolvedValueOnce(
+      mockJsonResponse(
+        createTicketPayload([
+          {
+            id: 'm_6',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Initial payload',
+            created_at: '2026-04-19T00:00:01.000Z'
+          }
+        ])
       )
-      .mockImplementationOnce(
-        () =>
-          new Promise<Response>((resolve) => {
-            resolveReload = resolve;
-          })
-      );
+    );
 
     render(<WithdrawTicketChat withdrawalId="w_1" />);
 
     expect(await screen.findByText('Initial payload')).toBeInTheDocument();
+    await waitFor(() => expect(messageHandler).toBeTruthy());
 
     act(() => {
-      eventSourceInstance?.emitOpen();
-    });
-
-    await act(async () => {
-      resolveReload?.(
-        mockJsonResponse(
-          createTicketPayload([
-            {
-              id: 'm_6',
-              ticket_id: 't_1',
-              sender_role: 'support',
-              sender_name: 'support',
-              text: 'Initial payload',
-              created_at: '2026-04-19T00:00:01.000Z'
-            }
-          ])
-        )
+      messageHandler?.(
+        new MessageEvent('message', {
+          data: JSON.stringify({
+            id: 'm_7',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Live payload',
+            created_at: '2026-04-19T00:00:02.000Z'
+          })
+        })
       );
     });
 
     await waitFor(() => {
-      expect(screen.getAllByRole('listitem')).toHaveLength(1);
+      expect(screen.getByText('Live payload')).toBeInTheDocument();
     });
     expect(screen.getByText('Initial payload')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('sends a user message through the ticket messages endpoint', async () => {
