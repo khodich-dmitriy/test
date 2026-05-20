@@ -79,11 +79,17 @@ export function RecordingMediaPreview({
         <div className={styles.videoPreviewLarge} aria-label="Recording video circle preview">
           <video ref={videoRef} muted autoPlay playsInline />
         </div>
+        <button
+          className={styles.videoStopButton}
+          type="button"
+          aria-label="Stop video recording"
+          onClick={onStop}
+        >
+          <span aria-hidden="true" />
+          Остановить
+        </button>
         <div className={styles.videoOverlayFooter}>
           <span className={styles.status}>{status}</span>
-          <button className={styles.stopButton} type="button" onClick={onStop}>
-            Stop
-          </button>
         </div>
       </div>
     );

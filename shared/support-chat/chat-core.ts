@@ -9,10 +9,52 @@ export const SUPPORT_REACTION_OPTIONS = [
   { emoji: '😮', label: 'wow' }
 ] as const;
 
+const RECORDING_MIME_CANDIDATES = {
+  audio: ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'],
+  video: ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
+} as const;
+
 export interface ChatMessagePayload {
   text: string;
   attachment_ids?: string[];
   reply_to_message_id?: string;
+}
+
+export function getSupportedRecordingMimeType(kind: 'audio' | 'video'): string | undefined {
+  if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+    return undefined;
+  }
+
+  return RECORDING_MIME_CANDIDATES[kind].find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+}
+
+export function getRecordingFileExtension(mimeType: string): string {
+  if (mimeType.includes('mp4')) {
+    return 'mp4';
+  }
+
+  if (mimeType.includes('ogg')) {
+    return 'ogg';
+  }
+
+  if (mimeType.includes('wav')) {
+    return 'wav';
+  }
+
+  return 'webm';
+}
+
+export function createRecordedFile(
+  kind: 'audio' | 'video',
+  timestamp: number,
+  chunks: Blob[],
+  mimeType: string
+): File {
+  const type = mimeType || (kind === 'video' ? 'video/webm' : 'audio/webm');
+  const extension = getRecordingFileExtension(type);
+  const baseName = kind === 'video' ? 'video' : 'audio';
+
+  return new File(chunks, `${baseName}-${timestamp}.${extension}`, { type, lastModified: timestamp });
 }
 
 export function mergeSupportMessages(

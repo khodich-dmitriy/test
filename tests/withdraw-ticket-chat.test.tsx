@@ -23,6 +23,15 @@ type TicketPayload = {
   }>;
 };
 
+type MockRecorderInstance = {
+  mimeType: string;
+  ondataavailable: ((event: { data: Blob }) => void) | null;
+  onstop: (() => void) | null;
+  requestData: ReturnType<typeof vi.fn>;
+  start: ReturnType<typeof vi.fn>;
+  stop: ReturnType<typeof vi.fn>;
+};
+
 let messageHandler: ((event: MessageEvent) => void) | null = null;
 let openHandler: (() => void) | null = null;
 let errorHandler: (() => void) | null = null;
@@ -98,11 +107,13 @@ describe('withdraw ticket chat', () => {
     errorHandler = null;
     eventSourceInstance = null;
     closeMock.mockReset();
+    vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     vi.stubGlobal('EventSource', MockEventSource as unknown as typeof EventSource);
     vi.stubGlobal('fetch', vi.fn());
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -133,6 +144,32 @@ describe('withdraw ticket chat', () => {
     });
   });
 
+  it('retries the first chat load after refreshing an expired access cookie', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(mockJsonResponse({ message: 'Unauthorized' }, 401))
+      .mockResolvedValueOnce(mockJsonResponse({ ok: true }))
+      .mockResolvedValueOnce(
+        mockJsonResponse(
+          createTicketPayload([
+            {
+              id: 'm_refresh',
+              ticket_id: 't_1',
+              sender_role: 'support',
+              sender_name: 'support',
+              text: 'Loaded after refresh',
+              created_at: '2026-04-19T00:00:01.000Z'
+            }
+          ])
+        )
+      );
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    expect(await screen.findByText('Loaded after refresh')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/auth/refresh', { method: 'POST' });
+  });
+
   it('deduplicates repeated SSE messages by id', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(mockJsonResponse(createTicketPayload([])));
@@ -140,6 +177,7 @@ describe('withdraw ticket chat', () => {
     render(<WithdrawTicketChat withdrawalId="w_1" />);
 
     await screen.findByText('No messages yet.');
+    await waitFor(() => expect(messageHandler).toBeTruthy());
 
     const duplicateMessage = {
       id: 'm_2',
@@ -196,7 +234,7 @@ describe('withdraw ticket chat', () => {
 
     expect(await screen.findByText('Initial payload')).toBeInTheDocument();
     expect(await screen.findByTestId('withdraw-ticket-chat-error')).toHaveTextContent(
-      'Reload failed'
+      'Network error. Please try again.'
     );
     expect(closeMock).not.toHaveBeenCalled();
 
@@ -421,6 +459,7 @@ describe('withdraw ticket chat', () => {
                 name: 'circle.webm',
                 content_type: 'video/webm',
                 media_type: 'video',
+                transcript: 'hello from video',
                 size: 12,
                 url: '/v1/support/attachments/att_video',
                 created_at: '2026-04-19T00:00:01.000Z'
@@ -441,6 +480,92 @@ describe('withdraw ticket chat', () => {
     expect(screen.getByLabelText('Video playback progress circle.webm')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
     expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Расшифровать видео' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Расшифровать видео' }));
+
+    expect(screen.getByText('hello from video')).toBeInTheDocument();
+  });
+
+  it('keeps recorded video playable by uploading the recorder mime type and collected bytes', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(mockJsonResponse(createTicketPayload([])))
+      .mockResolvedValueOnce(mockJsonResponse({ attachments: [{ id: 'att_video' }] }, 201))
+      .mockResolvedValueOnce(
+        mockJsonResponse({
+          id: 'm_video_send',
+          ticket_id: 't_1',
+          sender_role: 'user',
+          sender_name: 'demo',
+          text: '',
+          created_at: '2026-04-19T00:00:03.000Z'
+        }, 201)
+      )
+      .mockResolvedValueOnce(mockJsonResponse(createTicketPayload([])));
+    const trackStop = vi.fn();
+    const stream = {
+      getTracks: () => [{ stop: trackStop }]
+    } as unknown as MediaStream;
+    const recorderInstances: MockRecorderInstance[] = [];
+    class MockMediaRecorder {
+      static isTypeSupported = vi.fn((mimeType: string) => mimeType === 'video/mp4');
+      mimeType = 'video/mp4';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      requestData = vi.fn(() => {
+        this.ondataavailable?.({ data: new Blob(['video-bytes'], { type: this.mimeType }) });
+      });
+      start = vi.fn();
+      stop = vi.fn(() => {
+        this.requestData();
+        this.onstop?.();
+      });
+
+      constructor() {
+        recorderInstances.push(this);
+      }
+    }
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = '';
+      onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null = null;
+      start = vi.fn(() => {
+        this.onresult?.({
+          results: [[{ transcript: 'video words' }]]
+        });
+      });
+      stop = vi.fn();
+    }
+    vi.stubGlobal('MediaRecorder', MockMediaRecorder as unknown as typeof MediaRecorder);
+    vi.stubGlobal('SpeechRecognition', MockSpeechRecognition);
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      mediaDevices: {
+        getUserMedia: vi.fn().mockResolvedValue(stream)
+      }
+    });
+    const user = userEvent.setup();
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    await screen.findByText('No messages yet.');
+    await user.click(screen.getByRole('button', { name: 'Record video circle' }));
+    const recordingPreview = await screen.findByLabelText('Recording video fullscreen preview');
+    await user.click(within(recordingPreview).getByRole('button', { name: 'Stop video recording' }));
+    await screen.findByText(/video-\d+\.mp4/);
+    await user.click(screen.getByTestId('withdraw-ticket-chat-send-button'));
+
+    const uploadCall = fetchMock.mock.calls.find(([url]) => url === '/v1/support/tickets/t_1/attachments');
+    const uploadedFormData = uploadCall?.[1]?.body as FormData;
+    const uploadedFile = uploadedFormData.get('files') as File;
+
+    expect(recorderInstances[0]?.requestData).toHaveBeenCalled();
+    expect(uploadedFile.type).toBe('video/mp4');
+    expect(uploadedFile.size).toBeGreaterThan(0);
+    expect(uploadedFormData.get(`transcript:${uploadedFile.name}`)).toBe('video words');
+    expect(trackStop).toHaveBeenCalled();
   });
 
   it('separates chat messages by date and shows full send date for older messages', async () => {

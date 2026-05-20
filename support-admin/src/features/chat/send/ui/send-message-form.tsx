@@ -7,7 +7,9 @@ import * as yup from 'yup';
 
 import {
   appendFilesToChatFormData,
-  buildChatMessagePayload
+  buildChatMessagePayload,
+  createRecordedFile,
+  getSupportedRecordingMimeType
 } from '../../../../../../shared/support-chat/chat-core';
 import { RecordingMediaPreview } from '../../../../../../shared/support-chat/recording-media-preview';
 import { SelectedAttachmentPreviews } from '../../../../../../shared/support-chat/selected-attachment-previews';
@@ -55,6 +57,7 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [recordingVideoStream, setRecordingVideoStream] = useState<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
   const {
     handleSubmit,
@@ -74,9 +77,9 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
     () => () => {
       recognitionRef.current?.stop();
       recorderRef.current?.stop();
-      recordingVideoStream?.getTracks().forEach((track) => track.stop());
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
     },
-    [recordingVideoStream]
+    []
   );
 
   async function startRecording(kind: 'audio' | 'video') {
@@ -85,48 +88,64 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
       return;
     }
 
-    const fileName = `${kind}-${Date.now()}.webm`;
+    const timestamp = Date.now();
     const chunks: Blob[] = [];
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: kind === 'video'
     });
-    const recorder = new MediaRecorder(stream);
+    const supportedMimeType = getSupportedRecordingMimeType(kind);
+    const recorder = new MediaRecorder(
+      stream,
+      supportedMimeType ? { mimeType: supportedMimeType } : undefined
+    );
+    const recordingMimeType =
+      recorder.mimeType || supportedMimeType || (kind === 'video' ? 'video/webm' : 'audio/webm');
+    const fileName = createRecordedFile(kind, timestamp, [], recordingMimeType).name;
     recorderRef.current = recorder;
+    recordingStreamRef.current = stream;
     recorder.ondataavailable = (recordEvent) => {
       if (recordEvent.data.size > 0) {
         chunks.push(recordEvent.data);
       }
     };
     recorder.onstop = () => {
+      const file = createRecordedFile(kind, timestamp, chunks, recordingMimeType);
       setUploadStatus(`${kind === 'video' ? 'Video circle' : 'Voice message'} is ready to send`);
-      setFiles((current) => [
-        ...current,
-        new File(chunks, fileName, { type: kind === 'video' ? 'video/webm' : 'audio/webm' })
-      ]);
+      setFiles((current) => [...current, file]);
       stream.getTracks().forEach((track) => track.stop());
+      if (recordingStreamRef.current === stream) {
+        recordingStreamRef.current = null;
+      }
+      if (recorderRef.current === recorder) {
+        recorderRef.current = null;
+      }
+      if (kind === 'video') {
+        setRecordingVideoStream(null);
+      }
     };
 
+    const mediaWindow = window as MediaWindow;
+    const Recognition = mediaWindow.SpeechRecognition ?? mediaWindow.webkitSpeechRecognition;
+    if (Recognition) {
+      const recognition = new Recognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = navigator.language || 'ru-RU';
+      recognition.onresult = (speechEvent) => {
+        const transcript = Array.from(speechEvent.results)
+          .map((result) => result[0]?.transcript ?? '')
+          .join(' ')
+          .trim();
+        if (transcript) {
+          setTranscripts((current) => ({ ...current, [fileName]: transcript }));
+        }
+      };
+      recognitionRef.current = recognition;
+      recognition.start();
+    }
+
     if (kind === 'audio') {
-      const mediaWindow = window as MediaWindow;
-      const Recognition = mediaWindow.SpeechRecognition ?? mediaWindow.webkitSpeechRecognition;
-      if (Recognition) {
-        const recognition = new Recognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = navigator.language || 'ru-RU';
-        recognition.onresult = (speechEvent) => {
-          const transcript = Array.from(speechEvent.results)
-            .map((result) => result[0]?.transcript ?? '')
-            .join(' ')
-            .trim();
-          if (transcript) {
-            setTranscripts((current) => ({ ...current, [fileName]: transcript }));
-          }
-        };
-        recognitionRef.current = recognition;
-        recognition.start();
-      }
       setIsRecordingAudio(true);
       setUploadStatus('Recording voice message...');
     } else {
@@ -141,11 +160,13 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
   function stopRecording() {
     recognitionRef.current?.stop();
     recognitionRef.current = null;
-    recorderRef.current?.stop();
-    recorderRef.current = null;
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.requestData();
+      recorder.stop();
+    }
     setIsRecordingAudio(false);
     setIsRecordingVideo(false);
-    setRecordingVideoStream(null);
   }
 
   async function onSubmit(values: ChatFormValues) {

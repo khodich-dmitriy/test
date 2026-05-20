@@ -8,6 +8,8 @@ import * as yup from 'yup';
 import {
   appendFilesToChatFormData,
   buildChatMessagePayload,
+  createRecordedFile,
+  getSupportedRecordingMimeType,
   mergeSupportMessages,
   playChatNotificationSound,
   withReaction
@@ -17,6 +19,7 @@ import { SelectedAttachmentPreviews } from '@/shared/support-chat/selected-attac
 import { SupportChatTimeline } from '@/shared/support-chat/support-chat-timeline';
 import type { SupportMessage, SupportTicket } from '@/src/entities/support/model/types';
 import styles from '@/src/features/support/chat/ui/withdraw-ticket-chat.module.css';
+import { request, requestJson } from '@/src/shared/api/http-client';
 import { WithdrawTicketChatTestId } from '@/src/shared/config/test-ids';
 
 interface TicketPayload {
@@ -63,6 +66,22 @@ function mergeTicketPayload(current: TicketPayload, incoming: TicketPayload): Ti
   };
 }
 
+function getRequestErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    return (error as { message: string }).message;
+  }
+
+  return fallback;
+}
+
 export function WithdrawTicketChat({ withdrawalId }: Props) {
   const [payload, setPayload] = useState<TicketPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +100,7 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
   const [recordingVideoStream, setRecordingVideoStream] = useState<MediaStream | null>(null);
   const [visibleTranscriptIds, setVisibleTranscriptIds] = useState<Record<string, boolean>>({});
   const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
   const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
@@ -104,15 +124,15 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
     setError(null);
 
     try {
-      const response = await fetch(`/v1/support/withdrawals/${withdrawalId}/ticket`, {
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load ticket');
-      }
-
-      const data = (await response.json()) as TicketPayload;
+      const data = await requestJson<TicketPayload>(
+        `/v1/support/withdrawals/${withdrawalId}/ticket`,
+        {
+          cache: 'no-store'
+        },
+        {
+          retryOnUnauthorized: true
+        }
+      );
       const nextPayload = {
         ticket: data.ticket,
         messages: data.messages ?? []
@@ -130,7 +150,7 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
         setPayload(null);
       }
 
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load ticket');
+      setError(getRequestErrorMessage(loadError, 'Failed to load ticket'));
     } finally {
       if (!preserveExisting) {
         setIsLoading(false);
@@ -149,9 +169,9 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
       }
       recognitionRef.current?.stop();
       recorderRef.current?.stop();
-      recordingVideoStream?.getTracks().forEach((track) => track.stop());
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
     },
-    [recordingVideoStream]
+    []
   );
 
   async function startRecording(kind: 'audio' | 'video') {
@@ -160,48 +180,64 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
       return;
     }
 
-    const fileName = `${kind}-${Date.now()}.webm`;
+    const timestamp = Date.now();
     const chunks: Blob[] = [];
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: kind === 'video'
     });
-    const recorder = new MediaRecorder(stream);
+    const supportedMimeType = getSupportedRecordingMimeType(kind);
+    const recorder = new MediaRecorder(
+      stream,
+      supportedMimeType ? { mimeType: supportedMimeType } : undefined
+    );
+    const recordingMimeType =
+      recorder.mimeType || supportedMimeType || (kind === 'video' ? 'video/webm' : 'audio/webm');
+    const fileName = createRecordedFile(kind, timestamp, [], recordingMimeType).name;
     recorderRef.current = recorder;
+    recordingStreamRef.current = stream;
     recorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         chunks.push(event.data);
       }
     };
     recorder.onstop = () => {
+      const file = createRecordedFile(kind, timestamp, chunks, recordingMimeType);
       setUploadStatus(`${kind === 'video' ? 'Video circle' : 'Voice message'} is ready to send`);
-      setFiles((current) => [
-        ...current,
-        new File(chunks, fileName, { type: kind === 'video' ? 'video/webm' : 'audio/webm' })
-      ]);
+      setFiles((current) => [...current, file]);
       stream.getTracks().forEach((track) => track.stop());
+      if (recordingStreamRef.current === stream) {
+        recordingStreamRef.current = null;
+      }
+      if (recorderRef.current === recorder) {
+        recorderRef.current = null;
+      }
+      if (kind === 'video') {
+        setRecordingVideoStream(null);
+      }
     };
 
+    const mediaWindow = window as MediaWindow;
+    const Recognition = mediaWindow.SpeechRecognition ?? mediaWindow.webkitSpeechRecognition;
+    if (Recognition) {
+      const recognition = new Recognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = navigator.language || 'ru-RU';
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0]?.transcript ?? '')
+          .join(' ')
+          .trim();
+        if (transcript) {
+          setTranscripts((current) => ({ ...current, [fileName]: transcript }));
+        }
+      };
+      recognitionRef.current = recognition;
+      recognition.start();
+    }
+
     if (kind === 'audio') {
-      const mediaWindow = window as MediaWindow;
-      const Recognition = mediaWindow.SpeechRecognition ?? mediaWindow.webkitSpeechRecognition;
-      if (Recognition) {
-        const recognition = new Recognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = navigator.language || 'ru-RU';
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0]?.transcript ?? '')
-            .join(' ')
-            .trim();
-          if (transcript) {
-            setTranscripts((current) => ({ ...current, [fileName]: transcript }));
-          }
-        };
-        recognitionRef.current = recognition;
-        recognition.start();
-      }
       setIsRecordingAudio(true);
       setUploadStatus('Recording voice message...');
     } else {
@@ -216,11 +252,13 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
   function stopRecording() {
     recognitionRef.current?.stop();
     recognitionRef.current = null;
-    recorderRef.current?.stop();
-    recorderRef.current = null;
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.requestData();
+      recorder.stop();
+    }
     setIsRecordingAudio(false);
     setIsRecordingVideo(false);
-    setRecordingVideoStream(null);
   }
 
   useEffect(() => {
@@ -316,10 +354,14 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
         setUploadStatus(`Uploading ${files.length} attachment${files.length === 1 ? '' : 's'}...`);
         const formData = appendFilesToChatFormData(files, transcripts);
 
-        const uploadResponse = await fetch(`/v1/support/tickets/${payload.ticket.id}/attachments`, {
-          method: 'POST',
-          body: formData
-        });
+        const uploadResponse = await request(
+          `/v1/support/tickets/${payload.ticket.id}/attachments`,
+          {
+            method: 'POST',
+            body: formData
+          },
+          { retryOnUnauthorized: true }
+        );
         const uploadPayload = (await uploadResponse.json()) as {
           attachments?: Array<{ id: string }>;
         };
@@ -331,13 +373,17 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
         attachmentIds = (uploadPayload.attachments ?? []).map((attachment) => attachment.id);
       }
 
-      const response = await fetch(`/v1/support/tickets/${payload.ticket.id}/messages`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
+      const response = await request(
+        `/v1/support/tickets/${payload.ticket.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(buildChatMessagePayload(text, attachmentIds, replyTo?.id))
         },
-        body: JSON.stringify(buildChatMessagePayload(text, attachmentIds, replyTo?.id))
-      });
+        { retryOnUnauthorized: true }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to send message');
@@ -392,13 +438,17 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
     setReactionPickerMessageId(null);
 
     try {
-      const response = await fetch(`/v1/support/messages/${messageId}/reaction`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
+      const response = await request(
+        `/v1/support/messages/${messageId}/reaction`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({ emoji })
         },
-        body: JSON.stringify({ emoji })
-      });
+        { retryOnUnauthorized: true }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to save reaction');

@@ -137,6 +137,11 @@
   background: rgba(255, 255, 255, 0.58);
 }
 
+.videoBlock {
+  display: grid;
+  gap: 6px;
+}
+
 .voiceTrack {
   display: grid;
   grid-template-columns: 32px minmax(90px, 1fr) 30px;
@@ -153,7 +158,8 @@
 .transcribeButton,
 .reactionButton,
 .replyButton,
-.videoPlayButton {
+.videoPlayButton,
+.videoTranscribeButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -169,7 +175,8 @@
 
 .voicePlayButton,
 .transcribeButton,
-.replyButton {
+.replyButton,
+.videoTranscribeButton {
   width: 30px;
   height: 30px;
 }
@@ -242,9 +249,12 @@
   width: 48px;
   height: 48px;
   transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
-  opacity: 0;
+  backdrop-filter: blur(10px);
+  opacity: 1;
   transition:
     opacity 160ms ease,
     transform 160ms ease;
@@ -282,6 +292,41 @@
   stroke: var(--chat-accent, #1f6feb);
   stroke-linecap: round;
   transition: stroke-dashoffset 160ms linear;
+}
+
+.videoProgress[data-started='false'] .videoProgressValue {
+  opacity: 0;
+}
+
+.videoTranscribeButton {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.videoBubble:hover .videoTranscribeButton,
+.videoBubble:focus-within .videoTranscribeButton {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .videoPlayButton,
+  .videoTranscribeButton {
+    opacity: 0;
+  }
+
+  .videoBubble:hover .videoPlayButton,
+  .videoBubble:focus-within .videoPlayButton,
+  .videoBubble:hover .videoTranscribeButton,
+  .videoBubble:focus-within .videoTranscribeButton {
+    opacity: 1;
+  }
 }
 
 .reactions {

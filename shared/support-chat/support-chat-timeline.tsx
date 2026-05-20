@@ -283,7 +283,8 @@ export function SupportChatTimeline({
                           <p className={styles.transcript}>Расшифровка доступна для записанных голосовых сообщений.</p>
                         ) : null}
                       </div>
-                    ) : attachment.content_type.startsWith('video/') ? (
+                  ) : attachment.content_type.startsWith('video/') ? (
+                    <div className={styles.videoBlock}>
                       <div className={styles.videoBubble}>
                         <video
                           ref={(element) => {
@@ -294,8 +295,15 @@ export function SupportChatTimeline({
                           aria-label={`Video message ${attachment.name}`}
                           playsInline
                           preload="auto"
+                          onClick={() => toggleMedia(attachment.id)}
                           onLoadedMetadata={() => syncMediaProgress(attachment.id)}
                           onTimeUpdate={() => syncMediaProgress(attachment.id)}
+                          onPlay={() =>
+                            setPlayingMediaIds((current) => ({ ...current, [attachment.id]: true }))
+                          }
+                          onPause={() =>
+                            setPlayingMediaIds((current) => ({ ...current, [attachment.id]: false }))
+                          }
                           onEnded={() => {
                             setPlayingMediaIds((current) => ({ ...current, [attachment.id]: false }));
                             setMediaProgressIds((current) => ({ ...current, [attachment.id]: 1 }));
@@ -309,6 +317,11 @@ export function SupportChatTimeline({
                           aria-valuemin={0}
                           aria-valuemax={100}
                           aria-valuenow={Math.round((mediaProgressIds[attachment.id] ?? 0) * 100)}
+                          data-started={
+                            playingMediaIds[attachment.id] || (mediaProgressIds[attachment.id] ?? 0) > 0
+                              ? 'true'
+                              : 'false'
+                          }
                         >
                           <circle className={styles.videoProgressTrack} cx="50" cy="50" r="47" />
                           <circle
@@ -332,8 +345,24 @@ export function SupportChatTimeline({
                         >
                           {playingMediaIds[attachment.id] ? 'Ⅱ' : '▶'}
                         </button>
+                        <button
+                          className={styles.videoTranscribeButton}
+                          type="button"
+                          aria-label="Расшифровать видео"
+                          title="Расшифровать видео"
+                          onClick={() => onToggleTranscript(attachment.id)}
+                        >
+                          <TranscriptIcon />
+                        </button>
                       </div>
-                    ) : (
+                      {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
+                        <p className={styles.transcript}>{attachment.transcript}</p>
+                      ) : null}
+                      {visibleTranscriptIds[attachment.id] && !attachment.transcript ? (
+                        <p className={styles.transcript}>Расшифровка доступна для записанных видео сообщений.</p>
+                      ) : null}
+                    </div>
+                  ) : (
                       <a href={attachment.url} target="_blank" rel="noreferrer">
                         {attachment.name}
                       </a>
