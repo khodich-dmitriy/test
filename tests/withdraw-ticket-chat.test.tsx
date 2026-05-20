@@ -478,9 +478,14 @@ describe('withdraw ticket chat', () => {
     expect(within(voiceTrack).getByRole('button', { name: 'Расшифровать аудио' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Расшифровать аудио' })?.closest('[aria-label="Voice message track voice.webm"]')).toBe(voiceTrack);
     expect(screen.getByLabelText('Video playback progress circle.webm')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
+    const playVideoButton = screen.getByRole('button', { name: 'Play video message' });
+    expect(playVideoButton).toBeInTheDocument();
     expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Расшифровать видео' })).toBeInTheDocument();
+
+    await userEvent.click(playVideoButton);
+
+    expect(screen.getByRole('button', { name: 'Pause video message' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Расшифровать видео' }));
 

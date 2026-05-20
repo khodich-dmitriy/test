@@ -1,6 +1,7 @@
 .root {
   margin-top: 20px;
   padding-top: 20px;
+  padding-bottom: 132px;
   border-top: 1px solid var(--details-divider-color);
 }
 

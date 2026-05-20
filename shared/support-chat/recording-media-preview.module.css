@@ -159,14 +159,13 @@
 
 .videoStopButton {
   position: fixed;
-  left: 50%;
-  bottom: max(82px, calc(env(safe-area-inset-bottom) + 28px));
-  z-index: 81;
+  top: max(18px, calc(env(safe-area-inset-top) + 14px));
+  right: 18px;
+  z-index: 120;
   display: inline-flex;
   align-items: center;
   gap: 9px;
   min-height: 44px;
-  transform: translateX(-50%);
   border-radius: 999px;
   padding: 10px 18px;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
