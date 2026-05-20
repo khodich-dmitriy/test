@@ -34,6 +34,26 @@
   background: #fff;
 }
 
+.dateSeparator {
+  justify-self: center;
+  margin: 2px 0;
+  list-style: none;
+}
+
+.dateSeparator span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: rgba(15, 23, 42, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+}
+
 .message[data-role='user'] {
   justify-self: var(--chat-user-align, end);
   background: var(--chat-user-bg, #dbf5ec);
@@ -224,6 +244,44 @@
   transform: translate(-50%, -50%);
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+  opacity: 0;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.videoBubble:hover .videoPlayButton,
+.videoBubble:focus-within .videoPlayButton {
+  opacity: 1;
+}
+
+.videoBubble:hover .videoPlayButton {
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.videoProgress {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform: rotate(-90deg);
+}
+
+.videoProgressTrack,
+.videoProgressValue {
+  fill: none;
+  stroke-width: 3;
+}
+
+.videoProgressTrack {
+  stroke: rgba(255, 255, 255, 0.18);
+}
+
+.videoProgressValue {
+  stroke: var(--chat-accent, #1f6feb);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 160ms linear;
 }
 
 .reactions {

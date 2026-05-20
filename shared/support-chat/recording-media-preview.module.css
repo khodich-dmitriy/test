@@ -78,6 +78,67 @@
   object-fit: cover;
 }
 
+.videoOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  justify-items: center;
+  gap: 18px;
+  padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+  background: rgba(6, 12, 24, 0.88);
+  color: #fff;
+}
+
+.videoOverlayHeader,
+.videoOverlayFooter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.62);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(14px);
+}
+
+.recordingDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #f43f5e;
+  box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.2);
+}
+
+.videoTimer {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.videoPreviewLarge {
+  width: min(78vw, 520px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.82);
+  border-radius: 999px;
+  background: #020617;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.42),
+    0 0 0 12px rgba(255, 255, 255, 0.08);
+}
+
+.videoPreviewLarge video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .status {
   min-width: 0;
   overflow-wrap: anywhere;

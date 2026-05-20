@@ -438,8 +438,44 @@ describe('withdraw ticket chat', () => {
     expect(within(voiceTrack).getByRole('button', { name: 'Play voice message' })).toBeInTheDocument();
     expect(within(voiceTrack).getByRole('button', { name: 'Расшифровать аудио' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Расшифровать аудио' })?.closest('[aria-label="Voice message track voice.webm"]')).toBe(voiceTrack);
+    expect(screen.getByLabelText('Video playback progress circle.webm')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
     expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
+  });
+
+  it('separates chat messages by date and shows full send date for older messages', async () => {
+    const todayIso = new Date().toISOString();
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      mockJsonResponse(
+        createTicketPayload([
+          {
+            id: 'm_old',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Older message',
+            created_at: '2026-04-19T00:00:01.000Z'
+          },
+          {
+            id: 'm_today',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Today message',
+            created_at: todayIso
+          }
+        ])
+      )
+    );
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    expect(await screen.findByText('Older message')).toBeInTheDocument();
+    expect(screen.getByText('Today message')).toBeInTheDocument();
+    expect(screen.getByText('Today')).toBeInTheDocument();
+    expect(screen.getAllByText(/Apr|19|2026/).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/Sent at Apr|Sent at .*2026/)).toBeInTheDocument();
   });
 
   it('uploads selected attachments before sending a user chat message', async () => {
