@@ -14,9 +14,12 @@ describe('support admin startup scripts', () => {
     expect(packageJson.scripts['start:support-admin']).toBe(
       'node scripts/run-support-admin-with-port-cleanup.mjs start'
     );
-    expect(packageJson.scripts['build:support-admin']).toBe('next build ./support-admin');
+    expect(packageJson.scripts['build:support-admin']).toBe(
+      'node scripts/run-next-build-clean.mjs support-admin'
+    );
 
     const startupScript = await import('../scripts/run-support-admin-with-port-cleanup.mjs');
+    const buildScript = await import('../scripts/run-next-build-clean.mjs');
     expect(startupScript.createSupportAdminNextCommand('dev')).toEqual([
       'next',
       'dev',
@@ -31,6 +34,7 @@ describe('support admin startup scripts', () => {
       '-p',
       '3001'
     ]);
+    expect(buildScript.createCleanBuildCommand('support-admin')).toEqual(['next', 'build', './support-admin']);
+    expect(buildScript.getNextBuildDirectory('support-admin')).toBe(path.join(process.cwd(), 'support-admin', '.next'));
   });
 });
-

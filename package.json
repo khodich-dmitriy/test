@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "node scripts/run-next-with-port-cleanup.mjs dev",
     "dev:support-admin": "node scripts/run-support-admin-with-port-cleanup.mjs dev",
-    "build": "next build ./withdraw-app",
-    "build:support-admin": "next build ./support-admin",
+    "build": "node scripts/run-next-build-clean.mjs withdraw-app",
+    "build:support-admin": "node scripts/run-next-build-clean.mjs support-admin",
     "start": "node scripts/run-next-with-port-cleanup.mjs start",
     "start:support-admin": "node scripts/run-support-admin-with-port-cleanup.mjs start",
     "lint": "eslint .",
