@@ -117,11 +117,16 @@
   background: rgba(255, 255, 255, 0.58);
 }
 
-.voiceTopline {
+.voiceTrack {
   display: grid;
   grid-template-columns: 32px minmax(90px, 1fr) 30px;
   align-items: center;
   gap: 8px;
+  min-width: min(260px, 72vw);
+  border: 1px solid var(--chat-border, rgba(131, 150, 191, 0.22));
+  border-radius: 999px;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .voicePlayButton,
@@ -147,6 +152,12 @@
 .replyButton {
   width: 30px;
   height: 30px;
+}
+
+.voiceTrack .voicePlayButton,
+.voiceTrack .transcribeButton {
+  border: 0;
+  background: transparent;
 }
 
 .voicePlayer {

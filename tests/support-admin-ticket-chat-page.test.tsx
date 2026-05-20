@@ -404,9 +404,21 @@ describe('support-admin ticket chat page', () => {
               ticket_id: 't_1',
               sender_role: 'user',
               sender_name: 'demo',
-              text: 'Video question',
+              text: 'Media question',
               created_at: '2026-04-19T00:00:01.000Z',
               attachments: [
+                {
+                  id: 'att_voice',
+                  ticket_id: 't_1',
+                  message_id: 'm_video',
+                  name: 'voice.webm',
+                  content_type: 'audio/webm',
+                  media_type: 'audio',
+                  transcript: 'hello from voice',
+                  size: 10,
+                  url: '/v1/support/attachments/att_voice',
+                  created_at: '2026-04-19T00:00:01.000Z'
+                },
                 {
                   id: 'att_video',
                   ticket_id: 't_1',
@@ -426,6 +438,10 @@ describe('support-admin ticket chat page', () => {
     );
 
     expect(screen.getByTestId('support-chat-timeline')).toBeInTheDocument();
+    const voiceTrack = screen.getByLabelText('Voice message track voice.webm');
+    expect(within(voiceTrack).getByRole('button', { name: 'Play voice message' })).toBeInTheDocument();
+    expect(within(voiceTrack).getByRole('button', { name: 'Расшифровать аудио' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Расшифровать аудио' })?.closest('[aria-label="Voice message track voice.webm"]')).toBe(voiceTrack);
     expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
     expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
   });

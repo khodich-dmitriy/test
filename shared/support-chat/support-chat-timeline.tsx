@@ -137,7 +137,10 @@ export function SupportChatTimeline({
                     </a>
                   ) : attachment.content_type.startsWith('audio/') ? (
                     <div className={styles.voiceBlock}>
-                      <div className={styles.voiceTopline}>
+                      <div
+                        className={styles.voiceTrack}
+                        aria-label={`Voice message track ${attachment.name}`}
+                      >
                         <button
                           className={styles.voicePlayButton}
                           type="button"
@@ -146,17 +149,6 @@ export function SupportChatTimeline({
                         >
                           {playingMediaIds[attachment.id] ? 'Ⅱ' : '▶'}
                         </button>
-                        <audio
-                          ref={(element) => {
-                            mediaRefs.current[attachment.id] = element;
-                          }}
-                          className={styles.voicePlayer}
-                          src={attachment.url}
-                          preload="metadata"
-                          onEnded={() =>
-                            setPlayingMediaIds((current) => ({ ...current, [attachment.id]: false }))
-                          }
-                        />
                         <div className={styles.voiceWave} aria-hidden="true">
                           {WAVE_BARS.map((index) => (
                             <span key={index} />
@@ -172,6 +164,17 @@ export function SupportChatTimeline({
                           <TranscriptIcon />
                         </button>
                       </div>
+                      <audio
+                        ref={(element) => {
+                          mediaRefs.current[attachment.id] = element;
+                        }}
+                        className={styles.voicePlayer}
+                        src={attachment.url}
+                        preload="metadata"
+                        onEnded={() =>
+                          setPlayingMediaIds((current) => ({ ...current, [attachment.id]: false }))
+                        }
+                      />
                       {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
                         <p className={styles.transcript}>{attachment.transcript}</p>
                       ) : null}

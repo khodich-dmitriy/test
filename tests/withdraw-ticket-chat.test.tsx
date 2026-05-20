@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -399,9 +399,21 @@ describe('withdraw ticket chat', () => {
             ticket_id: 't_1',
             sender_role: 'support',
             sender_name: 'support',
-            text: 'Video answer',
+            text: 'Media answer',
             created_at: '2026-04-19T00:00:01.000Z',
             attachments: [
+              {
+                id: 'att_voice',
+                ticket_id: 't_1',
+                message_id: 'm_video',
+                name: 'voice.webm',
+                content_type: 'audio/webm',
+                media_type: 'audio',
+                transcript: 'hello from voice',
+                size: 10,
+                url: '/v1/support/attachments/att_voice',
+                created_at: '2026-04-19T00:00:01.000Z'
+              },
               {
                 id: 'att_video',
                 ticket_id: 't_1',
@@ -422,6 +434,10 @@ describe('withdraw ticket chat', () => {
     render(<WithdrawTicketChat withdrawalId="w_1" />);
 
     expect(await screen.findByTestId('support-chat-timeline')).toBeInTheDocument();
+    const voiceTrack = screen.getByLabelText('Voice message track voice.webm');
+    expect(within(voiceTrack).getByRole('button', { name: 'Play voice message' })).toBeInTheDocument();
+    expect(within(voiceTrack).getByRole('button', { name: 'Расшифровать аудио' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Расшифровать аудио' })?.closest('[aria-label="Voice message track voice.webm"]')).toBe(voiceTrack);
     expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
     expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
   });
