@@ -162,7 +162,9 @@ export function SupportChatTimeline({
       return;
     }
 
-    if (media.paused) {
+    const isPlaying = Boolean(playingMediaIds[id]) || !media.paused;
+
+    if (!isPlaying) {
       setPlayingMediaIds((current) => ({ ...current, [id]: true }));
       const playPromise = media.play();
 
@@ -172,9 +174,6 @@ export function SupportChatTimeline({
         });
       }
 
-      if (!playPromise) {
-        setPlayingMediaIds((current) => ({ ...current, [id]: false }));
-      }
       return;
     }
 

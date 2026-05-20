@@ -5,8 +5,10 @@
   max-height: min(62vh, 680px);
   margin: 0 0 12px;
   padding: 14px;
+  padding-block-end: var(--chat-bottom-safe-area, 14px);
   overflow-y: auto;
   overflow-x: hidden;
+  scroll-padding-bottom: var(--chat-bottom-safe-area, 14px);
   border: 1px solid var(--chat-border, rgba(131, 150, 191, 0.18));
   border-radius: 18px;
   background: var(--chat-bg, #f4f7fb);

@@ -1,4 +1,6 @@
 .root {
+  --chat-bottom-safe-area: 132px;
+
   margin-top: 20px;
   padding-top: 20px;
   padding-bottom: 132px;

@@ -108,6 +108,7 @@ describe('withdraw ticket chat', () => {
     eventSourceInstance = null;
     closeMock.mockReset();
     vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
     vi.stubGlobal('EventSource', MockEventSource as unknown as typeof EventSource);
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -486,6 +487,11 @@ describe('withdraw ticket chat', () => {
     await userEvent.click(playVideoButton);
 
     expect(screen.getByRole('button', { name: 'Pause video message' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Pause video message' }));
+
+    expect(window.HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Расшифровать видео' }));
 
