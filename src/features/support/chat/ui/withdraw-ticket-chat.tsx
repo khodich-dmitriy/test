@@ -520,6 +520,7 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
       ) : (
         <SupportChatTimeline
           messages={visibleMessages}
+          currentRole="user"
           reactionOverrides={reactionOverrides}
           reactionPickerMessageId={reactionPickerMessageId}
           visibleTranscriptIds={visibleTranscriptIds}

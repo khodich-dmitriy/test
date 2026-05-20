@@ -34,6 +34,7 @@ export interface SupportChatTimelineMessage {
 
 interface Props {
   messages: SupportChatTimelineMessage[];
+  currentRole: SupportChatTimelineMessage['sender_role'];
   reactionOverrides: Record<string, string>;
   reactionPickerMessageId: string | null;
   visibleTranscriptIds: Record<string, boolean>;
@@ -95,6 +96,7 @@ function formatMessageTime(date: Date) {
 
 export function SupportChatTimeline({
   messages,
+  currentRole,
   reactionOverrides,
   reactionPickerMessageId,
   visibleTranscriptIds,
@@ -211,9 +213,15 @@ export function SupportChatTimeline({
 
         const { message, sentAt } = item;
         const sentAtLabel = formatMessageTime(sentAt);
+        const author = message.sender_role === currentRole ? 'own' : 'other';
 
         return (
-          <li key={message.id} className={styles.message} data-role={message.sender_role}>
+          <li
+            key={message.id}
+            className={styles.message}
+            data-role={message.sender_role}
+            data-author={author}
+          >
             <div className={styles.messageMeta}>
               <strong className={styles.sender}>{message.sender_name}</strong>
               <span className={styles.time} aria-label={`Sent at ${sentAtLabel}`}>

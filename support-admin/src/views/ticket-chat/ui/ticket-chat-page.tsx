@@ -223,6 +223,7 @@ export function TicketChatPage({ ticketId, initialPayload }: Props) {
         ) : (
           <SupportChatTimeline
             messages={visibleMessages}
+            currentRole="support"
             reactionOverrides={reactionOverrides}
             reactionPickerMessageId={reactionPickerMessageId}
             visibleTranscriptIds={visibleTranscriptIds}

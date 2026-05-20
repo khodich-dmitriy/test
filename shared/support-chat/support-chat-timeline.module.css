@@ -56,14 +56,14 @@
   backdrop-filter: blur(10px);
 }
 
-.message[data-role='user'] {
-  justify-self: var(--chat-user-align, end);
-  background: var(--chat-user-bg, #dbf5ec);
+.message[data-author='own'] {
+  justify-self: start;
+  background: var(--chat-own-bg, #fff);
 }
 
-.message[data-role='support'] {
-  justify-self: var(--chat-support-align, start);
-  background: var(--chat-support-bg, #fff);
+.message[data-author='other'] {
+  justify-self: end;
+  background: var(--chat-other-bg, #dbf5ec);
 }
 
 .messageMeta {

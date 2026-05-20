@@ -127,7 +127,7 @@
   overflow: hidden;
   border: 3px solid rgba(255, 255, 255, 0.82);
   border-radius: 999px;
-  background: #020617;
+  background: #e8eef7;
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.42),
     0 0 0 12px rgba(255, 255, 255, 0.08);
@@ -152,9 +152,9 @@
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.13), transparent 34%),
-    linear-gradient(145deg, #263246, #111827 54%, #0b1120);
-  color: rgba(255, 255, 255, 0.88);
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.82), transparent 34%),
+    linear-gradient(145deg, #f8fbff, #e8eef7 54%, #d8e3f1);
+  color: rgba(18, 32, 51, 0.78);
   font-size: 14px;
   font-weight: 800;
   text-align: center;

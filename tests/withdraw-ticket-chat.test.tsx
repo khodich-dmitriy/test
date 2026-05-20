@@ -206,6 +206,44 @@ describe('withdraw ticket chat', () => {
     expect(screen.getAllByText('Repeated message')).toHaveLength(1);
   });
 
+  it('marks user messages as own and support messages as other in the client chat', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      mockJsonResponse(
+        createTicketPayload([
+          {
+            id: 'm_user',
+            ticket_id: 't_1',
+            sender_role: 'user',
+            sender_name: 'demo',
+            text: 'My client message',
+            created_at: '2026-04-19T00:00:01.000Z'
+          },
+          {
+            id: 'm_support',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Support answer',
+            created_at: '2026-04-19T00:00:02.000Z'
+          }
+        ])
+      )
+    );
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    expect(await screen.findByText('My client message')).toBeInTheDocument();
+    expect(screen.getByText('My client message').closest('[data-author]')).toHaveAttribute(
+      'data-author',
+      'own'
+    );
+    expect(screen.getByText('Support answer').closest('[data-author]')).toHaveAttribute(
+      'data-author',
+      'other'
+    );
+  });
+
   it('does not reload the full ticket when the live stream opens', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(

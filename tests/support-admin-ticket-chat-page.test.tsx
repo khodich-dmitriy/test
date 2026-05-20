@@ -270,6 +270,12 @@ describe('support-admin ticket chat page', () => {
     expect(
       within(log).getByText('We are checking it now').closest('[data-role]')
     ).toHaveAttribute('data-role', 'support');
+    expect(
+      within(log).getByText('I need help with this ticket').closest('[data-author]')
+    ).toHaveAttribute('data-author', 'other');
+    expect(
+      within(log).getByText('We are checking it now').closest('[data-author]')
+    ).toHaveAttribute('data-author', 'own');
     expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-role="support"]')).toHaveLength(1);
   });
