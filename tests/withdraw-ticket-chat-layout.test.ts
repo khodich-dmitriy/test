@@ -68,4 +68,20 @@ describe('withdraw ticket chat layout', () => {
     expect(recordingCss).toContain('linear-gradient(145deg, #f8fbff, #e8eef7 54%, #d8e3f1)');
     expect(recordingCss).not.toContain('background: #020617;');
   });
+
+  it('renders voice messages as a full-width seekable waveform from decoded audio peaks', () => {
+    const timelineCss = readFileSync(
+      path.join(process.cwd(), 'shared/support-chat/support-chat-timeline.module.css'),
+      'utf8'
+    );
+    const timelineTsx = readFileSync(
+      path.join(process.cwd(), 'shared/support-chat/support-chat-timeline.tsx'),
+      'utf8'
+    );
+
+    expect(timelineCss).toContain('width: min(430px, 72vw);');
+    expect(timelineCss).toContain('height: var(--wave-height);');
+    expect(timelineTsx).toContain('decodeAudioData');
+    expect(timelineTsx).toContain('aria-label={`Seek voice message ${attachment.name}`}');
+  });
 });

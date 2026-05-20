@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, type PointerEvent, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useMemo, useRef, useState } from 'react';
 
 import { SUPPORT_REACTION_OPTIONS } from './chat-core';
 import styles from './support-chat-timeline.module.css';
@@ -47,8 +47,19 @@ interface Props {
   onToggleTranscript: (attachmentId: string) => void;
 }
 
-const WAVE_BARS = Array.from({ length: 18 }, (_, index) => index);
+const AUDIO_WAVE_BAR_COUNT = 40;
+const DEFAULT_AUDIO_PEAKS = Array.from({ length: AUDIO_WAVE_BAR_COUNT }, (_, index) => {
+  const wave = Math.sin(index * 0.84) * 0.24 + Math.sin(index * 0.31) * 0.18;
+  return Math.min(1, Math.max(0.18, 0.5 + wave));
+});
 const VIDEO_PROGRESS_CIRCUMFERENCE = 295;
+
+type AudioContextConstructor = new () => AudioContext;
+
+interface AudioWaveWindow extends Window {
+  AudioContext?: AudioContextConstructor;
+  webkitAudioContext?: AudioContextConstructor;
+}
 
 function getPickerPosition(button: HTMLButtonElement): CSSProperties {
   const rect = button.getBoundingClientRect();
@@ -94,6 +105,50 @@ function formatMessageTime(date: Date) {
   return `${formatSeparatorDate(date)}, ${time}`;
 }
 
+function buildAudioPeaks(channelData: Float32Array, barCount = AUDIO_WAVE_BAR_COUNT): number[] {
+  if (channelData.length === 0) {
+    return DEFAULT_AUDIO_PEAKS;
+  }
+
+  const segmentLength = Math.max(1, Math.floor(channelData.length / barCount));
+  const peaks = Array.from({ length: barCount }, (_, index) => {
+    const start = index * segmentLength;
+    const end = Math.min(channelData.length, start + segmentLength);
+    let peak = 0;
+
+    for (let sampleIndex = start; sampleIndex < end; sampleIndex += 1) {
+      peak = Math.max(peak, Math.abs(channelData[sampleIndex] ?? 0));
+    }
+
+    return peak;
+  });
+  const maxPeak = Math.max(...peaks, 0.01);
+
+  return peaks.map((peak) => Math.min(1, Math.max(0.12, peak / maxPeak)));
+}
+
+async function decodeAudioPeaks(url: string): Promise<number[]> {
+  const audioWindow = window as AudioWaveWindow;
+  const AudioContextCtor = audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
+
+  if (!AudioContextCtor) {
+    return DEFAULT_AUDIO_PEAKS;
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    return DEFAULT_AUDIO_PEAKS;
+  }
+
+  const audioContext = new AudioContextCtor();
+  try {
+    const audioBuffer = await audioContext.decodeAudioData(await response.arrayBuffer());
+    return buildAudioPeaks(audioBuffer.getChannelData(0));
+  } finally {
+    void audioContext.close();
+  }
+}
+
 export function SupportChatTimeline({
   messages,
   currentRole,
@@ -112,7 +167,9 @@ export function SupportChatTimeline({
   const [playingMediaIds, setPlayingMediaIds] = useState<Record<string, boolean>>({});
   const [mediaProgressIds, setMediaProgressIds] = useState<Record<string, number>>({});
   const [mediaReadyIds, setMediaReadyIds] = useState<Record<string, boolean>>({});
+  const [audioPeaksById, setAudioPeaksById] = useState<Record<string, number[]>>({});
   const mediaRefs = useRef<Record<string, HTMLMediaElement | null>>({});
+  const audioPeakRequestsRef = useRef<Record<string, boolean>>({});
   const timelineItems = useMemo(() => {
     return messages.flatMap((message, index) => {
       const sentAt = new Date(message.created_at);
@@ -159,10 +216,89 @@ export function SupportChatTimeline({
     }));
   }
 
-  function toggleMedia(id: string) {
+  function seekMediaToRatio(id: string, ratio: number) {
+    const media = mediaRefs.current[id];
+    const duration = Number(media?.duration);
+
+    if (!media || !Number.isFinite(duration) || duration <= 0) {
+      return;
+    }
+
+    const nextProgress = Math.min(1, Math.max(0, ratio));
+    const nextTime = duration * nextProgress;
+
+    if (!Number.isFinite(nextTime)) {
+      return;
+    }
+
+    media.currentTime = nextTime;
+    setMediaProgressIds((current) => ({
+      ...current,
+      [id]: nextProgress
+    }));
+  }
+
+  function seekMediaFromPointer(id: string, event: PointerEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    seekMediaToRatio(id, (event.clientX - rect.left) / rect.width);
+  }
+
+  function seekMediaFromKeyboard(id: string, event: KeyboardEvent<HTMLDivElement>) {
+    const currentProgress = mediaProgressIds[id] ?? 0;
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      seekMediaToRatio(id, currentProgress - 0.05);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      seekMediaToRatio(id, currentProgress + 0.05);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      seekMediaToRatio(id, 0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      seekMediaToRatio(id, 1);
+    }
+  }
+
+  function ensureAudioPeaks(attachment: SupportMessageAttachment) {
+    if (audioPeaksById[attachment.id] || audioPeakRequestsRef.current[attachment.id]) {
+      return;
+    }
+
+    audioPeakRequestsRef.current[attachment.id] = true;
+    void decodeAudioPeaks(attachment.url)
+      .then((peaks) => {
+        setAudioPeaksById((current) => ({
+          ...current,
+          [attachment.id]: peaks
+        }));
+      })
+      .catch(() => {
+        setAudioPeaksById((current) => ({
+          ...current,
+          [attachment.id]: DEFAULT_AUDIO_PEAKS
+        }));
+      })
+      .finally(() => {
+        delete audioPeakRequestsRef.current[attachment.id];
+      });
+  }
+
+  function toggleMedia(id: string, attachment?: SupportMessageAttachment) {
     const media = mediaRefs.current[id];
     if (!media) {
       return;
+    }
+
+    if (attachment?.content_type.startsWith('audio/')) {
+      ensureAudioPeaks(attachment);
     }
 
     const isPlaying = Boolean(playingMediaIds[id]) || !media.paused;
@@ -258,13 +394,41 @@ export function SupportChatTimeline({
                             className={styles.voicePlayButton}
                             type="button"
                             aria-label={playingMediaIds[attachment.id] ? 'Pause voice message' : 'Play voice message'}
-                            onClick={() => toggleMedia(attachment.id)}
+                            onClick={() => toggleMedia(attachment.id, attachment)}
                           >
                             {playingMediaIds[attachment.id] ? 'Ⅱ' : '▶'}
                           </button>
-                          <div className={styles.voiceWave} aria-hidden="true">
-                            {WAVE_BARS.map((index) => (
-                              <span key={index} />
+                          <div
+                            className={styles.voiceWave}
+                            role="slider"
+                            tabIndex={0}
+                            aria-label={`Seek voice message ${attachment.name}`}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round((mediaProgressIds[attachment.id] ?? 0) * 100)}
+                            onPointerDown={(event) => seekMediaFromPointer(attachment.id, event)}
+                            onPointerMove={(event) => {
+                              if (event.buttons === 1) {
+                                seekMediaFromPointer(attachment.id, event);
+                              }
+                            }}
+                            onKeyDown={(event) => seekMediaFromKeyboard(attachment.id, event)}
+                          >
+                            {(audioPeaksById[attachment.id] ?? DEFAULT_AUDIO_PEAKS).map((peak, index, peaks) => (
+                              <span
+                                key={index}
+                                className={styles.voiceWaveBar}
+                                data-played={
+                                  (mediaProgressIds[attachment.id] ?? 0) >= index / Math.max(1, peaks.length - 1)
+                                    ? 'true'
+                                    : 'false'
+                                }
+                                style={
+                                  {
+                                    '--wave-height': `${Math.round(7 + peak * 23)}px`
+                                  } as CSSProperties
+                                }
+                              />
                             ))}
                           </div>
                           <button
@@ -282,11 +446,18 @@ export function SupportChatTimeline({
                             mediaRefs.current[attachment.id] = element;
                           }}
                           className={styles.voicePlayer}
+                          aria-label={`Audio player ${attachment.name}`}
                           src={attachment.url}
                           preload="metadata"
-                          onEnded={() =>
-                            setPlayingMediaIds((current) => ({ ...current, [attachment.id]: false }))
-                          }
+                          onLoadedMetadata={() => {
+                            syncMediaProgress(attachment.id);
+                            ensureAudioPeaks(attachment);
+                          }}
+                          onTimeUpdate={() => syncMediaProgress(attachment.id)}
+                          onEnded={() => {
+                            setPlayingMediaIds((current) => ({ ...current, [attachment.id]: false }));
+                            setMediaProgressIds((current) => ({ ...current, [attachment.id]: 1 }));
+                          }}
                         />
                         {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
                           <p className={styles.transcript}>{attachment.transcript}</p>

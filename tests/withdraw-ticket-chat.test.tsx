@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -525,6 +525,36 @@ describe('withdraw ticket chat', () => {
     const voiceTrack = screen.getByLabelText('Voice message track voice.webm');
     expect(within(voiceTrack).getByRole('button', { name: 'Play voice message' })).toBeInTheDocument();
     expect(within(voiceTrack).getByRole('button', { name: 'Расшифровать аудио' })).toBeInTheDocument();
+    const voiceSeek = within(voiceTrack).getByRole('slider', { name: 'Seek voice message voice.webm' });
+    expect(voiceSeek).toHaveAttribute('aria-valuemin', '0');
+    expect(voiceSeek).toHaveAttribute('aria-valuemax', '100');
+    expect(voiceSeek).toHaveAttribute('aria-valuenow', '0');
+    const voiceAudio = screen.getByLabelText('Audio player voice.webm') as HTMLAudioElement;
+    let audioCurrentTime = 0;
+    Object.defineProperty(voiceAudio, 'duration', { get: () => 20, configurable: true });
+    Object.defineProperty(voiceAudio, 'currentTime', {
+      get: () => audioCurrentTime,
+      set: (value) => {
+        audioCurrentTime = value;
+      },
+      configurable: true
+    });
+    vi.spyOn(voiceSeek, 'getBoundingClientRect').mockReturnValue({
+      bottom: 20,
+      height: 20,
+      left: 0,
+      right: 100,
+      top: 0,
+      width: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({})
+    });
+
+    fireEvent(voiceSeek, new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: 50 }));
+
+    expect(voiceAudio.currentTime).toBe(10);
+    expect(voiceSeek).toHaveAttribute('aria-valuenow', '50');
     expect(screen.queryByRole('button', { name: 'Расшифровать аудио' })?.closest('[aria-label="Voice message track voice.webm"]')).toBe(voiceTrack);
     expect(screen.getByLabelText('Video playback progress circle.webm')).toBeInTheDocument();
     const playVideoButton = screen.getByRole('button', { name: 'Play video message' });
