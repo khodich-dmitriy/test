@@ -17,5 +17,7 @@ describe('withdraw ticket chat layout', () => {
     expect(clientCss).toContain('--chat-bottom-safe-area: 132px;');
     expect(timelineCss).toContain('padding-block-end: var(--chat-bottom-safe-area, 14px);');
     expect(timelineCss).toContain('scroll-padding-bottom: var(--chat-bottom-safe-area, 14px);');
+    expect(timelineCss).toContain(".videoPlayButton[data-state='playing']");
+    expect(timelineCss).toContain('background: rgba(15, 23, 42, 0.72);');
   });
 });

@@ -42,7 +42,8 @@ export enum FooterTestId {
 }
 
 export enum ShellTestId {
-  CONTENT = 'shell-content'
+  CONTENT = 'shell-content',
+  NAVIGATION_PROGRESS = 'shell-navigation-progress'
 }
 
 export enum HomePageTestId {

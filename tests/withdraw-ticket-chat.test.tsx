@@ -486,9 +486,12 @@ describe('withdraw ticket chat', () => {
 
     await userEvent.click(playVideoButton);
 
-    expect(screen.getByRole('button', { name: 'Pause video message' })).toBeInTheDocument();
+    const pauseVideoButton = screen.getByRole('button', { name: 'Pause video message' });
+    expect(pauseVideoButton).toBeInTheDocument();
+    expect(pauseVideoButton).toHaveAttribute('data-state', 'playing');
+    expect(pauseVideoButton.querySelector('[data-video-pause-icon="true"]')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Pause video message' }));
+    await userEvent.click(pauseVideoButton);
 
     expect(window.HTMLMediaElement.prototype.pause).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();

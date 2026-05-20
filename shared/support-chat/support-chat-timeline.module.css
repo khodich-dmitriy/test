@@ -254,7 +254,7 @@
   height: 48px;
   transform: translate(-50%, -50%);
   border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(15, 23, 42, 0.52);
   color: #fff;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
   backdrop-filter: blur(10px);
@@ -262,6 +262,46 @@
   transition:
     opacity 160ms ease,
     transform 160ms ease;
+}
+
+.videoPlayButton[data-state='playing'] {
+  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.videoPlayIcon {
+  position: relative;
+  width: 18px;
+  height: 20px;
+  display: inline-block;
+}
+
+.videoPlayIcon[data-state='paused'] {
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 15px solid currentColor;
+}
+
+.videoPlayIcon[data-state='playing']::before,
+.videoPlayIcon[data-state='playing']::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 6px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.videoPlayIcon[data-state='playing']::before {
+  left: 2px;
+}
+
+.videoPlayIcon[data-state='playing']::after {
+  right: 2px;
 }
 
 .videoBubble:hover .videoPlayButton,

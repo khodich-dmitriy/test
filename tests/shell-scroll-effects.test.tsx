@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,15 +13,19 @@ import { AppLanguage } from '@/src/shared/i18n/config';
 import I18nProvider from '@/src/shared/i18n/provider';
 import ShellChrome from '@/src/widgets/shell/ui/shell-chrome';
 
+let pathnameMock = '/withdraw';
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn()
-  })
+  }),
+  usePathname: () => pathnameMock
 }));
 
 describe('scroll shell transparency', () => {
   beforeEach(() => {
+    pathnameMock = '/withdraw';
     vi.useFakeTimers();
     vi.stubGlobal(
       'fetch',
@@ -57,6 +61,7 @@ describe('scroll shell transparency', () => {
 
     act(() => {
       content.dispatchEvent(new Event('scroll'));
+      vi.advanceTimersByTime(16);
     });
 
     expect(header).toHaveAttribute('data-overlay-active', 'true');
@@ -142,5 +147,27 @@ describe('scroll shell transparency', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows navigation progress without refreshing the session when an internal link is clicked', async () => {
+    render(
+      <I18nProvider initialLanguage={AppLanguage.RU}>
+        <ShellChrome initialTheme={AppTheme.FINTECH_LIGHT} showLogout>
+          <a href="/withdraw/w_1" onClick={(event) => event.preventDefault()}>
+            Open details
+          </a>
+        </ShellChrome>
+      </I18nProvider>
+    );
+
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockClear();
+
+    const link = screen.getByRole('link', { name: 'Open details' });
+    fireEvent.pointerDown(link);
+    fireEvent.click(link);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId(ShellTestId.NAVIGATION_PROGRESS)).toBeInTheDocument();
   });
 });

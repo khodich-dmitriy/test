@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import styles from './recording-media-preview.module.css';
 
@@ -66,7 +67,7 @@ export function RecordingMediaPreview({
   }
 
   if (isRecordingVideo) {
-    return (
+    const overlay = (
       <div
         className={styles.videoOverlay}
         role="status"
@@ -93,6 +94,12 @@ export function RecordingMediaPreview({
         </div>
       </div>
     );
+
+    if (typeof document === 'undefined') {
+      return overlay;
+    }
+
+    return createPortal(overlay, document.body);
   }
 
   return (

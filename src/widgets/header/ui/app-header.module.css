@@ -4,6 +4,39 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
+.navigationProgress {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(31, 111, 235, 0.14);
+}
+
+.navigationProgress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -35%;
+  width: 35%;
+  border-radius: 999px;
+  background: var(--button-primary-bg, #1f6feb);
+  animation: navigation-progress 900ms ease-in-out infinite;
+}
+
+@keyframes navigation-progress {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(390%);
+  }
+}
+
 .header {
   position: relative;
   z-index: 10;

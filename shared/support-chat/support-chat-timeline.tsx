@@ -339,10 +339,16 @@ export function SupportChatTimeline({
                         <button
                           className={styles.videoPlayButton}
                           type="button"
+                          data-state={playingMediaIds[attachment.id] ? 'playing' : 'paused'}
                           aria-label={playingMediaIds[attachment.id] ? 'Pause video message' : 'Play video message'}
                           onClick={() => toggleMedia(attachment.id)}
                         >
-                          {playingMediaIds[attachment.id] ? 'Ⅱ' : '▶'}
+                          <span
+                            className={styles.videoPlayIcon}
+                            data-state={playingMediaIds[attachment.id] ? 'playing' : 'paused'}
+                            data-video-pause-icon={playingMediaIds[attachment.id] ? 'true' : undefined}
+                            aria-hidden="true"
+                          />
                         </button>
                         <button
                           className={styles.videoTranscribeButton}

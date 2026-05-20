@@ -6,16 +6,21 @@ import { RecordingMediaPreview } from '@/shared/support-chat/recording-media-pre
 describe('support chat recording preview', () => {
   it('shows video recording as a fullscreen circle with elapsed time', () => {
     render(
-      <RecordingMediaPreview
-        isRecordingAudio={false}
-        isRecordingVideo
-        onStop={() => {}}
-        status="Recording video circle..."
-        videoStream={null}
-      />
+      <div data-testid="chat-shell">
+        <RecordingMediaPreview
+          isRecordingAudio={false}
+          isRecordingVideo
+          onStop={() => {}}
+          status="Recording video circle..."
+          videoStream={null}
+        />
+      </div>
     );
 
-    expect(screen.getByLabelText('Recording video fullscreen preview')).toBeInTheDocument();
+    const overlay = screen.getByLabelText('Recording video fullscreen preview');
+    expect(overlay).toBeInTheDocument();
+    expect(screen.getByTestId('chat-shell')).toBeEmptyDOMElement();
+    expect(overlay.parentElement).toBe(document.body);
     expect(screen.getByLabelText('Recording video circle preview')).toBeInTheDocument();
     expect(screen.getByText('00:00')).toBeInTheDocument();
   });

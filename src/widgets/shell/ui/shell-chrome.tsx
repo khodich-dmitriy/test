@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { AppTheme } from '@/src/entities/theme/model/theme';
 import { ShellTestId } from '@/src/shared/config/test-ids';
@@ -13,7 +14,7 @@ const ACCESS_REFRESH_INTERVAL_MS = 45_000;
 const ACTIVITY_REFRESH_THROTTLE_MS = 30_000;
 
 interface ShellChromeProps {
-  children: React.ReactNode;
+  children: ReactNode;
   initialTheme: AppTheme;
   showLogout: boolean;
 }
@@ -23,9 +24,18 @@ export default function ShellChrome({
   initialTheme,
   showLogout
 }: ShellChromeProps) {
+  const pathname = usePathname();
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const headerOverlayRef = useRef(false);
+  const footerOverlayRef = useRef(false);
+  const scrollFrameRef = useRef<number | null>(null);
   const [isHeaderOverlayActive, setIsHeaderOverlayActive] = useState(false);
   const [isFooterOverlayActive, setIsFooterOverlayActive] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [pathname]);
 
   useEffect(() => {
     const content = contentRef.current;
@@ -39,17 +49,39 @@ export default function ShellChrome({
       const remainingBottom = content.scrollHeight - content.scrollTop - content.clientHeight;
       const nextFooterOverlay = remainingBottom > 0;
 
-      setIsHeaderOverlayActive(nextHeaderOverlay);
-      setIsFooterOverlayActive(nextFooterOverlay);
+      if (headerOverlayRef.current !== nextHeaderOverlay) {
+        headerOverlayRef.current = nextHeaderOverlay;
+        setIsHeaderOverlayActive(nextHeaderOverlay);
+      }
+
+      if (footerOverlayRef.current !== nextFooterOverlay) {
+        footerOverlayRef.current = nextFooterOverlay;
+        setIsFooterOverlayActive(nextFooterOverlay);
+      }
+    };
+
+    const scheduleOverlaySync = () => {
+      if (scrollFrameRef.current !== null) {
+        return;
+      }
+
+      scrollFrameRef.current = window.requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        syncOverlayState();
+      });
     };
 
     syncOverlayState();
-    content.addEventListener('scroll', syncOverlayState, { passive: true });
-    window.addEventListener('resize', syncOverlayState);
+    content.addEventListener('scroll', scheduleOverlaySync, { passive: true });
+    window.addEventListener('resize', scheduleOverlaySync);
 
     return () => {
-      content.removeEventListener('scroll', syncOverlayState);
-      window.removeEventListener('resize', syncOverlayState);
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+      content.removeEventListener('scroll', scheduleOverlaySync);
+      window.removeEventListener('resize', scheduleOverlaySync);
     };
   }, []);
 
@@ -87,7 +119,19 @@ export default function ShellChrome({
       void refreshAccessToken('timer');
     };
 
-    const triggerRefreshByActivity = () => {
+    const isLinkPointerActivity = (event: Event) => {
+      if (event.type !== 'pointerdown' || !(event.target instanceof Element)) {
+        return false;
+      }
+
+      return Boolean(event.target.closest('a[href]'));
+    };
+
+    const triggerRefreshByActivity = (event: Event) => {
+      if (isLinkPointerActivity(event)) {
+        return;
+      }
+
       void refreshAccessToken('activity');
     };
 
@@ -109,8 +153,46 @@ export default function ShellChrome({
     };
   }, [showLogout]);
 
+  const startNavigationFeedback = (event: MouseEvent<HTMLDivElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    const link = (event.target as Element | null)?.closest('a[href]');
+    if (!(link instanceof HTMLAnchorElement) || link.target || link.hasAttribute('download')) {
+      return;
+    }
+
+    const nextUrl = new URL(link.href);
+    if (nextUrl.origin !== window.location.origin) {
+      return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    if (`${nextUrl.pathname}${nextUrl.search}` === `${currentUrl.pathname}${currentUrl.search}`) {
+      return;
+    }
+
+    setIsNavigating(true);
+  };
+
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} onClickCapture={startNavigationFeedback}>
+      {isNavigating ? (
+        <div
+          className={styles.navigationProgress}
+          data-testid={ShellTestId.NAVIGATION_PROGRESS}
+          role="status"
+          aria-label="Page is loading"
+        />
+      ) : null}
       <AppHeader
         initialTheme={initialTheme}
         isOverlayActive={isHeaderOverlayActive}
