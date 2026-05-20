@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { getServerSupportSession } from '../../src/entities/session/model/server-session';
-import { listSupportUsers } from '../../src/entities/support/model/support-store';
+import { listActiveTicketsForStaff, listSupportUsers } from '../../src/entities/support/model/support-store';
 import { UsersPage } from '../../src/views/users/ui/users-page';
 
 export default async function UsersRoutePage() {
@@ -10,5 +10,5 @@ export default async function UsersRoutePage() {
     redirect('/login');
   }
 
-  return <UsersPage users={listSupportUsers()} />;
+  return <UsersPage activeTickets={listActiveTicketsForStaff(session.username)} users={listSupportUsers()} />;
 }

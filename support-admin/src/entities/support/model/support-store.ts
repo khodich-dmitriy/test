@@ -10,6 +10,8 @@ import {
   getTicketById as getSharedTicketById,
   getTicketByWithdrawalId,
   listMessagesByTicketId as listSharedMessagesByTicketId,
+  markInactiveSupportTickets,
+  markTicketRead,
   readAttachmentBytes,
   setMessageReaction,
   SupportAccessError,
@@ -22,6 +24,7 @@ export {
   getAttachmentById,
   getMessageById,
   getTicketByWithdrawalId,
+  markTicketRead,
   readAttachmentBytes,
   setMessageReaction,
   SupportAccessError,
@@ -48,6 +51,39 @@ export function listTicketsByUserId(userId: string): SupportTicket[] {
     db.tickets
       .filter((ticket) => ticket.user_id === userId)
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+  );
+}
+
+export function listActiveTicketsForStaff(
+  username: string,
+  search = ''
+): SupportTicket[] {
+  markInactiveSupportTickets();
+  const normalizedSearch = search.trim().toLowerCase();
+
+  return readSystemDb((db) =>
+    db.tickets
+      .filter(
+        (ticket) =>
+          ticket.status === 'open' &&
+          ticket.support_state === 'active' &&
+          ticket.assigned_staff_username === username
+      )
+      .filter((ticket) => {
+        if (!normalizedSearch) {
+          return true;
+        }
+
+        const messages = db.messages.filter((message) => message.ticket_id === ticket.id);
+        return [
+          ticket.id,
+          ticket.subject,
+          ticket.withdrawal_id ?? '',
+          ticket.assigned_staff_username ?? '',
+          ...messages.map((message) => `${message.sender_name} ${message.text}`)
+        ].some((value) => value.toLowerCase().includes(normalizedSearch));
+      })
+      .sort((a, b) => (b.last_activity_at ?? b.updated_at).localeCompare(a.last_activity_at ?? a.updated_at))
   );
 }
 

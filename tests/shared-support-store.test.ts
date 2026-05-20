@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { readSystemDb } from '@/shared/mock/system-db';
 import {
+  appendSupportMessage,
   appendUserMessage,
   assignTicketToAvailableSupport,
   ensureTicketOwnedByUser,
@@ -146,10 +147,10 @@ describe('shared support mock store', () => {
     });
   });
 
-  it('assigns no more than three active tickets to one support member and marks stale tickets inactive', () => {
+  it('assigns no more than five active tickets to one support member and keeps overflow queued', () => {
     resetMockWithdrawals();
 
-    const tickets = Array.from({ length: 4 }, (_, index) => {
+    const tickets = Array.from({ length: 6 }, (_, index) => {
       const created = createWithdrawal({
         amount: 700 + index,
         destination: `wallet-assign-${index}`,
@@ -160,11 +161,55 @@ describe('shared support mock store', () => {
 
     const assigned = tickets.map((ticket) => assignTicketToAvailableSupport(ticket.id));
 
-    expect(assigned.filter((ticket) => ticket.assigned_staff_username === 'support')).toHaveLength(3);
-    expect(assigned[3].assigned_staff_username).toBe('admin');
+    expect(assigned.filter((ticket) => ticket.assigned_staff_username === 'support')).toHaveLength(5);
+    expect(assigned[5].assigned_staff_username).toBeNull();
+    expect(assigned[5].support_state).toBe('queued');
+    expect(assigned[5].last_activity_at).toBeNull();
+  });
 
-    const stale = markInactiveSupportTickets(new Date(Date.now() + 11 * 60 * 1000).toISOString());
-    expect(stale.length).toBeGreaterThanOrEqual(4);
-    expect(stale.every((ticket) => ticket.support_state === 'inactive')).toBe(true);
+  it('marks tickets inactive after twenty minutes and promotes queued work only then', () => {
+    resetMockWithdrawals();
+
+    const tickets = Array.from({ length: 6 }, (_, index) => {
+      const created = createWithdrawal({
+        amount: 800 + index,
+        destination: `wallet-queue-${index}`,
+        idempotencyKey: `shared-k-queue-${index}`
+      });
+      return getTicketByWithdrawalId(created.id);
+    });
+
+    const assigned = tickets.map((ticket) => assignTicketToAvailableSupport(ticket.id));
+    const firstAssignedAt = assigned[0].last_activity_at;
+
+    expect(assigned[5].support_state).toBe('queued');
+    const stale = markInactiveSupportTickets(new Date(Date.now() + 21 * 60 * 1000).toISOString());
+
+    expect(stale.length).toBeGreaterThanOrEqual(5);
+    const snapshot = readSystemDb((db) => db.tickets);
+    expect(snapshot.find((ticket) => ticket.id === assigned[0].id)?.support_state).toBe('inactive');
+    const promoted = snapshot.find((ticket) => ticket.id === assigned[5].id);
+    expect(promoted?.assigned_staff_username).toBe('support');
+    expect(promoted?.support_state).toBe('active');
+    expect(promoted?.last_activity_at).not.toBe(firstAssignedAt);
+  });
+
+  it('tracks unread messages separately for support and user', () => {
+    resetMockWithdrawals();
+
+    const created = createWithdrawal({
+      amount: 900,
+      destination: 'wallet-unread',
+      idempotencyKey: 'shared-k-unread'
+    });
+    const ticket = getTicketByWithdrawalId(created.id);
+
+    appendUserMessage(ticket.id, 'demo', 'Need a human');
+    appendSupportMessage(ticket.id, 'support', 'I am here');
+
+    const afterMessages = readSystemDb((db) => db.tickets.find((item) => item.id === ticket.id));
+
+    expect(afterMessages?.unread_support_count).toBe(1);
+    expect(afterMessages?.unread_user_count).toBe(1);
   });
 });

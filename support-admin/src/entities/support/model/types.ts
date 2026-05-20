@@ -15,10 +15,12 @@ export interface SupportTicket {
   withdrawal_id: string | null;
   subject: string;
   status: 'open' | 'closed';
-  support_state?: 'active' | 'inactive';
+  support_state?: 'active' | 'inactive' | 'queued';
   assigned_staff_id?: string | null;
   assigned_staff_username?: string | null;
-  last_activity_at?: string;
+  last_activity_at?: string | null;
+  unread_user_count?: number;
+  unread_support_count?: number;
   created_at: string;
   updated_at: string;
 }

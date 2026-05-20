@@ -54,10 +54,12 @@ export function createWithdrawal(input: InternalCreateInput): Withdrawal {
       withdrawal_id: withdrawal.id,
       subject: `Withdrawal ${withdrawal.id}`,
       status: 'open',
-      support_state: 'active',
+      support_state: 'queued',
       assigned_staff_id: null,
       assigned_staff_username: null,
-      last_activity_at: createdAt,
+      last_activity_at: null,
+      unread_user_count: 0,
+      unread_support_count: 0,
       created_at: createdAt,
       updated_at: createdAt
     });
@@ -95,13 +97,18 @@ export function getWithdrawalById(id: string): Withdrawal | null {
 function listWithdrawalsSorted(): Withdrawal[] {
   return readSystemDb((db) =>
     db.withdrawals
-      .map((item) => ({
-        id: item.id,
-        amount: item.amount,
-        destination: item.destination,
-        status: item.status,
-        created_at: item.created_at
-      }))
+      .map((item) => {
+        const ticket = db.tickets.find((supportTicket) => supportTicket.withdrawal_id === item.id);
+
+        return {
+          id: item.id,
+          amount: item.amount,
+          destination: item.destination,
+          status: item.status,
+          created_at: item.created_at,
+          support_unread_count: ticket?.unread_user_count ?? 0
+        };
+      })
       .sort((left, right) => {
         const timeDiff = new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
         if (timeDiff !== 0) {

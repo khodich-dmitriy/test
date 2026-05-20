@@ -101,7 +101,10 @@
 }
 
 .ticketLink {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid rgba(131, 150, 191, 0.18);
@@ -109,6 +112,19 @@
   color: #122033;
   font-weight: 600;
   line-height: 1.5;
+}
+
+.unreadBadge {
+  min-width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #243bff;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .ticketLink:hover {

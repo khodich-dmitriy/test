@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { readSystemDb, withSystemDb } from '@/shared/mock/system-db';
 import { hasSessionRequest } from '@/src/entities/session/model/auth';
-import { getTicketByWithdrawalId } from '@/src/entities/support/model/chat-store';
+import { appendSupportMessage, getTicketByWithdrawalId } from '@/src/entities/support/model/chat-store';
 import { createWithdrawal, resetMockWithdrawals } from '@/src/entities/withdrawal/model/mock-withdrawal-store';
 import { POST as postTicketMessage } from '@/withdraw-app/app/v1/support/tickets/[ticketId]/messages/route';
 import { GET as getWithdrawalTicket } from '@/withdraw-app/app/v1/support/withdrawals/[withdrawalId]/ticket/route';
@@ -63,6 +63,31 @@ describe('withdraw support api routes', () => {
     expect(payload.ticket.withdrawal_id).toBe(created.id);
     expect(payload.messages).toHaveLength(1);
     expect(payload.messages[0].ticket_id).toBe(ticket.id);
+  });
+
+  it('clears unread user messages when the user opens the support chat', async () => {
+    resetMockWithdrawals();
+    const created = createWithdrawal({
+      amount: 178,
+      destination: 'wallet-user-read',
+      idempotencyKey: 'withdraw-support-user-read'
+    });
+    const ticket = getTicketByWithdrawalId(created.id);
+    appendSupportMessage(ticket.id, 'support', 'Please review my answer');
+
+    expect(readSystemDb((db) => db.tickets.find((item) => item.id === ticket.id)?.unread_user_count)).toBe(1);
+
+    const response = await getWithdrawalTicket(
+      new Request(`http://localhost/v1/support/withdrawals/${created.id}/ticket`, {
+        headers: {
+          cookie: demoSessionCookie
+        }
+      }),
+      { params: Promise.resolve({ withdrawalId: created.id }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(readSystemDb((db) => db.tickets.find((item) => item.id === ticket.id)?.unread_user_count)).toBe(0);
   });
 
   it('recreates a missing support ticket for an existing authenticated withdrawal', async () => {

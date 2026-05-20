@@ -4,6 +4,7 @@ import { DELETE as deleteWithdrawal } from '@/app/v1/withdrawals/[id]/route';
 import { GET as getWithdrawalById } from '@/app/v1/withdrawals/[id]/route';
 import { GET as feedGet } from '@/app/v1/withdrawals/feed/route';
 import { AUTH_ACCESS_COOKIE_NAME, AUTH_ACCESS_COOKIE_VALUE } from '@/src/entities/session/model/auth';
+import { appendSupportMessage, getTicketByWithdrawalId } from '@/src/entities/support/model/chat-store';
 import {
   createWithdrawal,
   resetMockWithdrawals
@@ -77,5 +78,26 @@ describe('withdraw feed api', () => {
     );
 
     expect(getResponse.status).toBe(404);
+  });
+
+  it('includes unread support message counts for each withdrawal', async () => {
+    resetMockWithdrawals();
+
+    const created = createWithdrawal({
+      amount: 77,
+      destination: 'wallet-unread-feed',
+      idempotencyKey: 'k-unread-feed'
+    });
+    const ticket = getTicketByWithdrawalId(created.id);
+    appendSupportMessage(ticket.id, 'support', 'Please check the chat');
+
+    const response = await feedGet(
+      new Request(createWithdrawFeedApiUrl(null, 20), { headers: authHeaders() })
+    );
+    const payload = (await response.json()) as {
+      items: Array<{ id: string; support_unread_count?: number }>;
+    };
+
+    expect(payload.items.find((item) => item.id === created.id)?.support_unread_count).toBe(1);
   });
 });

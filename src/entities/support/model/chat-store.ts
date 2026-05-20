@@ -35,8 +35,8 @@ interface UploadAttachmentInput {
   bytes: Uint8Array;
 }
 
-const SUPPORT_INACTIVITY_MS = 10 * 60 * 1000;
-const MAX_ACTIVE_TICKETS_PER_SUPPORT = 3;
+const SUPPORT_INACTIVITY_MS = 20 * 60 * 1000;
+const MAX_ACTIVE_TICKETS_PER_SUPPORT = 5;
 
 function resolveAttachmentStorageDir(): string {
   return process.env.MOCK_SUPPORT_ATTACHMENT_DIR || DEFAULT_ATTACHMENT_STORAGE_DIR;
@@ -160,10 +160,12 @@ export function getOrCreateTicketByWithdrawalId(withdrawalId: string): SupportTi
       withdrawal_id: withdrawal.id,
       subject: `Withdrawal ${withdrawal.id}`,
       status: 'open',
-      support_state: 'active',
+      support_state: 'queued',
       assigned_staff_id: null,
       assigned_staff_username: null,
-      last_activity_at: createdAt,
+      last_activity_at: null,
+      unread_user_count: 0,
+      unread_support_count: 0,
       created_at: createdAt,
       updated_at: createdAt
     };
@@ -210,6 +212,26 @@ export function listMessagesByTicketId(ticketId: string): SupportMessage[] {
           null
       }))
   );
+}
+
+export function markTicketRead(
+  ticketId: string,
+  readerRole: SupportMessage['sender_role']
+): SupportTicket {
+  return withSystemDb((db) => {
+    const ticket = db.tickets.find((item) => item.id === ticketId);
+    if (!ticket) {
+      throw new SupportNotFoundError('Ticket not found');
+    }
+
+    if (readerRole === 'user') {
+      ticket.unread_user_count = 0;
+    } else {
+      ticket.unread_support_count = 0;
+    }
+
+    return ticket;
+  });
 }
 
 function addChatEvent(
@@ -291,8 +313,21 @@ function appendMessage(
       attachment.message_id = message.id;
     }
     ticket.updated_at = createdAt;
-    ticket.last_activity_at = createdAt;
-    ticket.support_state = 'active';
+    if (senderRole === 'user') {
+      ticket.unread_support_count = (ticket.unread_support_count ?? 0) + 1;
+      if (!ticket.assigned_staff_id) {
+        assignTicketToAvailableSupportInDb(db, ticketId, createdAt);
+      }
+    } else {
+      ticket.unread_user_count = (ticket.unread_user_count ?? 0) + 1;
+    }
+    if (ticket.assigned_staff_id) {
+      ticket.last_activity_at = createdAt;
+      ticket.support_state = 'active';
+    } else {
+      ticket.last_activity_at = null;
+      ticket.support_state = 'queued';
+    }
     addChatEvent(db, ticketId, 'message', createdAt, { messageId: message.id });
     return {
       ...message,
@@ -477,41 +512,67 @@ export function assignTicketToAvailableSupport(ticketId: string): SupportTicket 
       throw new SupportNotFoundError('Ticket not found');
     }
 
-    if (ticket.assigned_staff_id) {
-      return ticket;
-    }
-
-    const supportStaff = db.staff
-      .filter((staff) => staff.role === 'support' || staff.role === 'admin')
-      .sort((left, right) => {
-        if (left.role !== right.role) {
-          return left.role === 'support' ? -1 : 1;
-        }
-
-        return left.created_at.localeCompare(right.created_at);
-      });
-    const selected = supportStaff
-      .map((staff) => ({
-        staff,
-        activeCount: db.tickets.filter(
-          (item) => item.assigned_staff_id === staff.id && item.support_state !== 'inactive' && item.status === 'open'
-        ).length
-      }))
-      .find((candidate) => candidate.activeCount < MAX_ACTIVE_TICKETS_PER_SUPPORT);
-
-    if (!selected) {
-      throw new Error('No support staff available');
-    }
-
-    const now = new Date().toISOString();
-    ticket.assigned_staff_id = selected.staff.id;
-    ticket.assigned_staff_username = selected.staff.username;
-    ticket.support_state = 'active';
-    ticket.last_activity_at = ticket.last_activity_at ?? ticket.updated_at;
-    ticket.updated_at = now;
-    addChatEvent(db, ticketId, 'assignment', now);
+    assignTicketToAvailableSupportInDb(db, ticketId);
     return ticket;
   });
+}
+
+function assignTicketToAvailableSupportInDb(
+  db: Parameters<Parameters<typeof withSystemDb>[0]>[0],
+  ticketId: string,
+  nowIso = new Date().toISOString()
+): SupportTicket {
+  const ticket = db.tickets.find((item) => item.id === ticketId);
+  if (!ticket) {
+    throw new SupportNotFoundError('Ticket not found');
+  }
+
+  if (ticket.assigned_staff_id) {
+    return ticket;
+  }
+
+  const selected = db.staff
+    .filter((staff) => staff.role === 'support')
+    .sort((left, right) => left.created_at.localeCompare(right.created_at))
+    .map((staff) => ({
+      staff,
+      activeCount: db.tickets.filter(
+        (item) =>
+          item.assigned_staff_id === staff.id &&
+          item.support_state === 'active' &&
+          item.status === 'open'
+      ).length
+    }))
+    .find((candidate) => candidate.activeCount < MAX_ACTIVE_TICKETS_PER_SUPPORT);
+
+  if (!selected) {
+    ticket.assigned_staff_id = null;
+    ticket.assigned_staff_username = null;
+    ticket.support_state = 'queued';
+    ticket.last_activity_at = null;
+    return ticket;
+  }
+
+  ticket.assigned_staff_id = selected.staff.id;
+  ticket.assigned_staff_username = selected.staff.username;
+  ticket.support_state = 'active';
+  ticket.last_activity_at = nowIso;
+  ticket.updated_at = nowIso;
+  addChatEvent(db, ticketId, 'assignment', nowIso);
+  return ticket;
+}
+
+function promoteQueuedTicketsInDb(
+  db: Parameters<Parameters<typeof withSystemDb>[0]>[0],
+  nowIso: string
+) {
+  const queuedTickets = db.tickets
+    .filter((ticket) => ticket.status === 'open' && ticket.support_state === 'queued')
+    .sort((left, right) => left.created_at.localeCompare(right.created_at));
+
+  for (const ticket of queuedTickets) {
+    assignTicketToAvailableSupportInDb(db, ticket.id, nowIso);
+  }
 }
 
 export function markInactiveSupportTickets(nowIso = new Date().toISOString()): SupportTicket[] {
@@ -520,10 +581,11 @@ export function markInactiveSupportTickets(nowIso = new Date().toISOString()): S
     const changed: SupportTicket[] = [];
 
     for (const ticket of db.tickets) {
-      const lastActivity = Date.parse(ticket.last_activity_at ?? ticket.updated_at);
+      const lastActivity = ticket.last_activity_at ? Date.parse(ticket.last_activity_at) : Number.NaN;
       if (
         ticket.status === 'open' &&
-        ticket.support_state !== 'inactive' &&
+        ticket.support_state === 'active' &&
+        ticket.assigned_staff_id &&
         !Number.isNaN(lastActivity) &&
         now - lastActivity >= SUPPORT_INACTIVITY_MS
       ) {
@@ -534,6 +596,7 @@ export function markInactiveSupportTickets(nowIso = new Date().toISOString()): S
       }
     }
 
+    promoteQueuedTicketsInDb(db, nowIso);
     return changed;
   });
 }

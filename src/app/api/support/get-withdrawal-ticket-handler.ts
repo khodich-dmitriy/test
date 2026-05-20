@@ -7,6 +7,7 @@ import {
   ensureTicketOwnedByUser,
   getOrCreateTicketByWithdrawalId,
   listMessagesByTicketId,
+  markTicketRead,
   SupportAccessError,
   SupportNotFoundError
 } from '@/src/entities/support/model/chat-store';
@@ -21,10 +22,11 @@ export async function handleGetWithdrawalTicket(request: Request, withdrawalId: 
       getOrCreateTicketByWithdrawalId(withdrawalId),
       getDefaultSystemUserId()
     );
+    markTicketRead(ticket.id, 'user');
 
     return NextResponse.json(
       {
-        ticket,
+        ticket: getOrCreateTicketByWithdrawalId(withdrawalId),
         messages: listMessagesByTicketId(ticket.id)
       },
       { status: 200 }

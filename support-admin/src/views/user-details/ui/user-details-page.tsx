@@ -28,7 +28,10 @@ export function UserDetailsPage({ user, tickets }: Props) {
           {tickets.map((ticket) => (
             <li key={ticket.id} className={styles.listItem}>
               <Link className={styles.ticketLink} href={`/tickets/${ticket.id}`}>
-                {ticket.subject} ({ticket.status})
+                <span>{ticket.subject} ({ticket.status})</span>
+                {(ticket.unread_support_count ?? 0) > 0 ? (
+                  <span className={styles.unreadBadge}>{ticket.unread_support_count}</span>
+                ) : null}
               </Link>
             </li>
           ))}

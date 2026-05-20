@@ -6,6 +6,7 @@ export interface Withdrawal {
   destination: string;
   status: WithdrawalStatus;
   created_at: string;
+  support_unread_count?: number;
 }
 
 export interface CreateWithdrawalRequest {

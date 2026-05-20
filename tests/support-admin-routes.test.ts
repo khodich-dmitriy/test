@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readSystemDb } from '@/shared/mock/system-db';
-import { uploadTicketAttachments } from '@/src/entities/support/model/chat-store';
+import { appendUserMessage, getTicketByWithdrawalId, uploadTicketAttachments } from '@/src/entities/support/model/chat-store';
 import { createWithdrawal, resetMockWithdrawals } from '@/src/entities/withdrawal/model/mock-withdrawal-store';
 import { POST as postMessageReaction } from '@/support-admin/app/v1/support/messages/[messageId]/reaction/route';
 import { POST as addStaffPost } from '@/support-admin/app/v1/support/staff/route';
@@ -17,6 +17,51 @@ describe('support-admin api routes', () => {
     );
 
     expect(response.status).toBe(401);
+  });
+
+  it('returns only active assigned tickets for the current support member and supports search', async () => {
+    resetMockWithdrawals();
+    const created = Array.from({ length: 6 }, (_, index) =>
+      createWithdrawal({
+        amount: 60 + index,
+        destination: `wallet-active-${index}`,
+        idempotencyKey: `support-active-k-${index}`
+      })
+    );
+
+    for (const withdrawal of created) {
+      const ticket = getTicketByWithdrawalId(withdrawal.id);
+      appendUserMessage(ticket.id, 'demo', `Need support for ${withdrawal.destination}`);
+    }
+
+    const response = await getSupportUsers(
+      new Request('http://localhost/v1/support/users', {
+        headers: {
+          cookie: 'support_admin_user=support; support_admin_role=support'
+        }
+      })
+    );
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      active_tickets: Array<{ subject: string; assigned_staff_username?: string | null; support_state?: string }>;
+    };
+
+    expect(payload.active_tickets).toHaveLength(5);
+    expect(payload.active_tickets.every((ticket) => ticket.assigned_staff_username === 'support')).toBe(true);
+    expect(payload.active_tickets.every((ticket) => ticket.support_state === 'active')).toBe(true);
+
+    const searchResponse = await getSupportUsers(
+      new Request('http://localhost/v1/support/users?ticketSearch=wallet-active-3', {
+        headers: {
+          cookie: 'support_admin_user=support; support_admin_role=support'
+        }
+      })
+    );
+    const searchPayload = (await searchResponse.json()) as {
+      active_tickets: Array<{ subject: string }>;
+    };
+    expect(searchPayload.active_tickets).toHaveLength(1);
+    expect(searchPayload.active_tickets[0].subject).toContain(created[3].id);
   });
 
   it('rejects ticket details request without session', async () => {
@@ -108,6 +153,8 @@ describe('support-admin api routes', () => {
 
     const payload = (await ticketResponse.json()) as { messages: Array<{ text: string }> };
     expect(payload.messages.some((message) => message.text.includes('checking your request'))).toBe(true);
+    const afterOpen = readSystemDb((db) => db.tickets.find((item) => item.id === ticketId));
+    expect(afterOpen?.unread_support_count).toBe(0);
   });
 
   it('uploads an attachment separately and links it to a support message', async () => {

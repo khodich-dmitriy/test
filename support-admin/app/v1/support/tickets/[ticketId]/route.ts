@@ -5,6 +5,7 @@ import {
   getSupportUserById,
   getTicketById,
   listMessagesByTicketId,
+  markTicketRead,
   SupportNotFoundError
 } from '../../../../../src/entities/support/model/support-store';
 
@@ -21,9 +22,10 @@ export async function GET(_request: Request, context: Props) {
   try {
     const ticket = getTicketById(ticketId);
     const user = getSupportUserById(ticket.user_id);
+    markTicketRead(ticketId, 'support');
     const messages = listMessagesByTicketId(ticketId);
 
-    return NextResponse.json({ ticket, user, messages }, { status: 200 });
+    return NextResponse.json({ ticket: getTicketById(ticketId), user, messages }, { status: 200 });
   } catch (error) {
     if (error instanceof SupportNotFoundError) {
       return NextResponse.json({ message: error.message }, { status: 404 });

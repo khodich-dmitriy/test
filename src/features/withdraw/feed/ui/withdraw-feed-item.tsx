@@ -38,6 +38,11 @@ export default function WithdrawFeedItem({ item, top, onDelete }: WithdrawFeedIt
           </Text>
           <div className={styles.subline}>
             <StatusChip status={item.status} />
+            {(item.support_unread_count ?? 0) > 0 ? (
+              <span className={styles.unreadBadge}>
+                {item.support_unread_count}
+              </span>
+            ) : null}
             <Text className={styles.metaText} variant="meta">
               {item.id}
             </Text>

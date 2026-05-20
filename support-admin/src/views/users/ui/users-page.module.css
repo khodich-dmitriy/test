@@ -72,6 +72,45 @@
   padding: 12px;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 8px 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 20px;
+}
+
+.sectionSubtitle,
+.empty {
+  margin: 4px 0 0;
+  color: #52607a;
+  font-size: 14px;
+}
+
+.searchLabel {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 320px);
+  color: #52607a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.searchInput {
+  min-height: 40px;
+  border: 1px solid rgba(131, 150, 191, 0.26);
+  border-radius: 14px;
+  padding: 0 12px;
+  background: #fff;
+  color: #122033;
+  font: inherit;
+}
+
 .list {
   display: grid;
   gap: 10px;
@@ -95,7 +134,42 @@
   line-height: 1.5;
 }
 
-.userLink:hover {
+.ticketLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(131, 150, 191, 0.18);
+  background: #fff;
+  color: #122033;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.ticketMeta {
+  color: #52607a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.unreadBadge {
+  min-width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  border-radius: 999px;
+  background: #243bff;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.userLink:hover,
+.ticketLink:hover {
   text-decoration: none;
   border-color: rgba(36, 59, 255, 0.24);
 }
@@ -112,5 +186,9 @@
 
   .action {
     width: 100%;
+  }
+
+  .sectionHeader {
+    display: grid;
   }
 }

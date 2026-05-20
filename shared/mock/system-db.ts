@@ -3,7 +3,7 @@ import path from 'node:path';
 
 export type SupportRole = 'admin' | 'support';
 export type TicketStatus = 'open' | 'closed';
-export type TicketSupportState = 'active' | 'inactive';
+export type TicketSupportState = 'active' | 'inactive' | 'queued';
 
 export interface SystemUser {
   id: string;
@@ -31,7 +31,9 @@ export interface SupportTicket {
   support_state?: TicketSupportState;
   assigned_staff_id?: string | null;
   assigned_staff_username?: string | null;
-  last_activity_at?: string;
+  last_activity_at?: string | null;
+  unread_user_count?: number;
+  unread_support_count?: number;
   created_at: string;
   updated_at: string;
 }
