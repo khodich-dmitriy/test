@@ -10,10 +10,11 @@ import {
   buildChatMessagePayload,
   mergeSupportMessages,
   playChatNotificationSound,
-  SUPPORT_REACTION_OPTIONS,
   withReaction
 } from '@/shared/support-chat/chat-core';
-import { TranscriptIcon } from '@/shared/support-chat/transcript-icon';
+import { RecordingMediaPreview } from '@/shared/support-chat/recording-media-preview';
+import { SelectedAttachmentPreviews } from '@/shared/support-chat/selected-attachment-previews';
+import { SupportChatTimeline } from '@/shared/support-chat/support-chat-timeline';
 import type { SupportMessage, SupportTicket } from '@/src/entities/support/model/types';
 import styles from '@/src/features/support/chat/ui/withdraw-ticket-chat.module.css';
 import { WithdrawTicketChatTestId } from '@/src/shared/config/test-ids';
@@ -77,6 +78,7 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [recordingVideoStream, setRecordingVideoStream] = useState<MediaStream | null>(null);
   const [visibleTranscriptIds, setVisibleTranscriptIds] = useState<Record<string, boolean>>({});
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
@@ -147,8 +149,9 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
       }
       recognitionRef.current?.stop();
       recorderRef.current?.stop();
+      recordingVideoStream?.getTracks().forEach((track) => track.stop());
     },
-    []
+    [recordingVideoStream]
   );
 
   async function startRecording(kind: 'audio' | 'video') {
@@ -202,6 +205,7 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
       setIsRecordingAudio(true);
       setUploadStatus('Recording voice message...');
     } else {
+      setRecordingVideoStream(stream);
       setIsRecordingVideo(true);
       setUploadStatus('Recording video circle...');
     }
@@ -216,6 +220,7 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
     recorderRef.current = null;
     setIsRecordingAudio(false);
     setIsRecordingVideo(false);
+    setRecordingVideoStream(null);
   }
 
   useEffect(() => {
@@ -467,128 +472,26 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
           {search.trim() ? 'No messages found.' : 'No messages yet.'}
         </p>
       ) : (
-        <ul
-          className={styles.list}
-          data-testid={WithdrawTicketChatTestId.LIST}
-          role="log"
-          aria-label="Ticket messages"
-          aria-live="polite"
-          aria-relevant="additions text"
-          aria-atomic="false"
-        >
-          {visibleMessages.map((message) => (
-            <li key={message.id} className={styles.message} data-role={message.sender_role}>
-              <div className={styles.messageMeta}>
-                <strong className={styles.sender}>{message.sender_name}</strong>
-                <span className={styles.time}>{new Date(message.created_at).toLocaleString()}</span>
-              </div>
-              <p className={styles.text}>{message.text}</p>
-              {message.reply_to ? (
-                <blockquote className={styles.replyPreview}>
-                  <strong>{message.reply_to.sender_name}</strong>
-                  <span>{message.reply_to.text}</span>
-                </blockquote>
-              ) : null}
-              {message.attachments && message.attachments.length > 0 ? (
-                <ul className={styles.attachmentList}>
-                  {message.attachments.map((attachment) => (
-                    <li key={attachment.id}>
-                      {attachment.content_type.startsWith('image/') ? (
-                        <a href={attachment.url} target="_blank" rel="noreferrer">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            className={styles.attachmentImage}
-                            src={attachment.url}
-                            alt={attachment.name}
-                          />
-                        </a>
-                      ) : attachment.content_type.startsWith('audio/') ? (
-                        <div className={styles.voiceBlock}>
-                          <div className={styles.voiceTopline}>
-                            <audio className={styles.voicePlayer} controls src={attachment.url} />
-                            <div className={styles.voiceWave} aria-hidden="true">
-                              {Array.from({ length: 18 }, (_, index) => (
-                                <span key={index} />
-                              ))}
-                            </div>
-                            <button
-                              className={styles.transcribeButton}
-                              type="button"
-                              aria-label="Расшифровать аудио"
-                              title="Расшифровать аудио"
-                              onClick={() =>
-                                setVisibleTranscriptIds((current) => ({
-                                  ...current,
-                                  [attachment.id]: !current[attachment.id]
-                                }))
-                              }
-                            >
-                              <TranscriptIcon />
-                            </button>
-                          </div>
-                          {visibleTranscriptIds[attachment.id] && attachment.transcript ? (
-                            <p className={styles.transcript}>{attachment.transcript}</p>
-                          ) : null}
-                          {visibleTranscriptIds[attachment.id] && !attachment.transcript ? (
-                            <p className={styles.transcript}>Расшифровка доступна для записанных голосовых сообщений.</p>
-                          ) : null}
-                        </div>
-                      ) : attachment.content_type.startsWith('video/') ? (
-                        <video className={styles.videoAttachment} controls src={attachment.url} />
-                      ) : (
-                        <a href={attachment.url} target="_blank" rel="noreferrer">
-                          {attachment.name}
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <div className={styles.reactions}>
-                <button
-                  className={styles.reactionButton}
-                  type="button"
-                  aria-label="Choose reaction"
-                  onClick={() =>
-                    setReactionPickerMessageId((current) =>
-                      current === message.id ? null : message.id
-                    )
-                  }
-                  onPointerDown={(event) => openReactionOnTouch(event, message.id)}
-                  onPointerLeave={cancelTouchReaction}
-                  onPointerUp={cancelTouchReaction}
-                >
-                  {reactionOverrides[message.id] ?? message.reaction?.emoji ?? '＋'}
-                </button>
-                {reactionPickerMessageId === message.id ? (
-                  <div className={styles.reactionPicker} role="menu">
-                    {SUPPORT_REACTION_OPTIONS.map((reaction) => (
-                      <button
-                        key={reaction.emoji}
-                        type="button"
-                        aria-label={`React with ${reaction.label}`}
-                        onClick={() => {
-                          void selectReaction(message.id, reaction.emoji);
-                        }}
-                      >
-                        {reaction.emoji}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                <button
-                  className={styles.replyButton}
-                  type="button"
-                  aria-label="Ответить на сообщение"
-                  title="Ответить на сообщение"
-                  onClick={() => setReplyTo(message)}
-                >
-                  ↩
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <SupportChatTimeline
+          messages={visibleMessages}
+          reactionOverrides={reactionOverrides}
+          reactionPickerMessageId={reactionPickerMessageId}
+          visibleTranscriptIds={visibleTranscriptIds}
+          emptyLabel={search.trim() ? 'No messages found.' : 'No messages yet.'}
+          onToggleReactionPicker={setReactionPickerMessageId}
+          onSelectReaction={(messageId, emoji) => {
+            void selectReaction(messageId, emoji);
+          }}
+          onOpenReactionTouch={openReactionOnTouch}
+          onCancelTouchReaction={cancelTouchReaction}
+          onReply={(message) => setReplyTo(message as SupportMessage)}
+          onToggleTranscript={(attachmentId) =>
+            setVisibleTranscriptIds((current) => ({
+              ...current,
+              [attachmentId]: !current[attachmentId]
+            }))
+          }
+        />
       )}
 
       <form className={styles.composer} onSubmit={handleFormSubmit(submitMessage)}>
@@ -651,26 +554,14 @@ export function WithdrawTicketChat({ withdrawalId }: Props) {
             {isSending ? '...' : '➤'}
           </button>
         </div>
-        {(isRecordingAudio || isRecordingVideo || uploadStatus) && (
-          <div className={styles.processPanel} role="status">
-            <span>{uploadStatus}</span>
-            {(isRecordingAudio || isRecordingVideo) && (
-              <button type="button" onClick={stopRecording}>
-                Stop
-              </button>
-            )}
-          </div>
-        )}
-        {files.length > 0 ? (
-          <ul className={styles.selectedAttachments}>
-            {files.map((file) => (
-              <li key={`${file.name}-${file.size}`}>
-                {file.name}
-                {transcripts[file.name] ? <span>{transcripts[file.name]}</span> : null}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <RecordingMediaPreview
+          isRecordingAudio={isRecordingAudio}
+          isRecordingVideo={isRecordingVideo}
+          status={uploadStatus}
+          videoStream={recordingVideoStream}
+          onStop={stopRecording}
+        />
+        <SelectedAttachmentPreviews files={files} transcripts={transcripts} />
       </form>
     </section>
   );

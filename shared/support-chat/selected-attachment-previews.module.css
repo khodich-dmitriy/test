@@ -1,0 +1,116 @@
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--chat-muted, #52607a);
+  font-size: 13px;
+}
+
+.item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--chat-border, rgba(131, 150, 191, 0.22));
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.voicePreview {
+  display: grid;
+  grid-template-columns: 30px minmax(92px, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: min(220px, 70vw);
+}
+
+.voiceIcon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--chat-accent, #1f6feb);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wave span {
+  width: 3px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--chat-wave, rgba(31, 111, 235, 0.42));
+}
+
+.wave span:nth-child(3n) {
+  height: 18px;
+}
+
+.wave span:nth-child(4n) {
+  height: 14px;
+}
+
+.videoPreview {
+  position: relative;
+  width: 88px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #111827;
+}
+
+.videoPreview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoPreview span {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--chat-accent, #1f6feb);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.imagePreview {
+  max-width: 120px;
+  max-height: 96px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.name,
+.transcript {
+  overflow-wrap: anywhere;
+}
+
+.name {
+  color: var(--chat-title, #122033);
+  font-weight: 700;
+}
+
+.transcript {
+  color: var(--chat-muted, #52607a);
+  font-size: 11px;
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 
@@ -9,6 +9,8 @@ import {
   appendFilesToChatFormData,
   buildChatMessagePayload
 } from '../../../../../../shared/support-chat/chat-core';
+import { RecordingMediaPreview } from '../../../../../../shared/support-chat/recording-media-preview';
+import { SelectedAttachmentPreviews } from '../../../../../../shared/support-chat/selected-attachment-previews';
 import type { SupportMessage } from '../../../../entities/support/model/types';
 import styles from './send-message-form.module.css';
 
@@ -51,6 +53,7 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [recordingVideoStream, setRecordingVideoStream] = useState<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null);
   const {
@@ -66,6 +69,15 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
   });
   const text = watch('text');
   const isSubmitDisabled = loading || isSubmitting || (text.trim().length === 0 && files.length === 0);
+
+  useEffect(
+    () => () => {
+      recognitionRef.current?.stop();
+      recorderRef.current?.stop();
+      recordingVideoStream?.getTracks().forEach((track) => track.stop());
+    },
+    [recordingVideoStream]
+  );
 
   async function startRecording(kind: 'audio' | 'video') {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -118,6 +130,7 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
       setIsRecordingAudio(true);
       setUploadStatus('Recording voice message...');
     } else {
+      setRecordingVideoStream(stream);
       setIsRecordingVideo(true);
       setUploadStatus('Recording video circle...');
     }
@@ -132,6 +145,7 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
     recorderRef.current = null;
     setIsRecordingAudio(false);
     setIsRecordingVideo(false);
+    setRecordingVideoStream(null);
   }
 
   async function onSubmit(values: ChatFormValues) {
@@ -255,26 +269,14 @@ export function SendMessageForm({ ticketId, replyTo = null, onCancelReply, onSen
           {loading ? '...' : '➤'}
         </button>
       </div>
-      {(isRecordingAudio || isRecordingVideo || uploadStatus) && (
-        <div className={styles.processPanel} role="status">
-          <span>{uploadStatus}</span>
-          {(isRecordingAudio || isRecordingVideo) && (
-            <button type="button" onClick={stopRecording}>
-              Stop
-            </button>
-          )}
-        </div>
-      )}
-      {files.length > 0 ? (
-        <ul className={styles.attachmentList}>
-          {files.map((file) => (
-            <li key={`${file.name}-${file.size}`}>
-              {file.name}
-              {transcripts[file.name] ? <span>{transcripts[file.name]}</span> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <RecordingMediaPreview
+        isRecordingAudio={isRecordingAudio}
+        isRecordingVideo={isRecordingVideo}
+        status={uploadStatus}
+        videoStream={recordingVideoStream}
+        onStop={stopRecording}
+      />
+      <SelectedAttachmentPreviews files={files} transcripts={transcripts} />
       {error && (
         <p className={styles.error} role="status">
           {error}

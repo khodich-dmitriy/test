@@ -389,6 +389,43 @@ describe('withdraw ticket chat', () => {
     expect(screen.queryByText('👍')).not.toBeInTheDocument();
   });
 
+  it('renders media messages through the shared telegram-style timeline', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      mockJsonResponse(
+        createTicketPayload([
+          {
+            id: 'm_video',
+            ticket_id: 't_1',
+            sender_role: 'support',
+            sender_name: 'support',
+            text: 'Video answer',
+            created_at: '2026-04-19T00:00:01.000Z',
+            attachments: [
+              {
+                id: 'att_video',
+                ticket_id: 't_1',
+                message_id: 'm_video',
+                name: 'circle.webm',
+                content_type: 'video/webm',
+                media_type: 'video',
+                size: 12,
+                url: '/v1/support/attachments/att_video',
+                created_at: '2026-04-19T00:00:01.000Z'
+              }
+            ]
+          }
+        ])
+      )
+    );
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    expect(await screen.findByTestId('support-chat-timeline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
+  });
+
   it('uploads selected attachments before sending a user chat message', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
@@ -481,6 +518,23 @@ describe('withdraw ticket chat', () => {
       },
       body: JSON.stringify({ text: 'Receipt attached', attachment_ids: ['att_1'] })
     });
+  });
+
+  it('shows telegram-style previews for selected voice and video messages before sending', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(mockJsonResponse(createTicketPayload([])));
+
+    render(<WithdrawTicketChat withdrawalId="w_1" />);
+
+    await screen.findByText('No messages yet.');
+    await user.upload(screen.getByLabelText('Attach files'), [
+      new File(['voice'], 'voice.webm', { type: 'audio/webm' }),
+      new File(['video'], 'circle.webm', { type: 'video/webm' })
+    ]);
+
+    expect(screen.getByLabelText('Voice message preview voice.webm')).toBeInTheDocument();
+    expect(screen.getByLabelText('Video circle preview circle.webm')).toBeInTheDocument();
   });
 
   it('shows a notification when a support message arrives for the user', async () => {

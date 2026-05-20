@@ -378,6 +378,58 @@ describe('support-admin ticket chat page', () => {
     expect(screen.queryByText('👍')).not.toBeInTheDocument();
   });
 
+  it('renders media messages through the shared telegram-style timeline', () => {
+    render(
+      <TicketChatPage
+        ticketId="t_1"
+        initialPayload={{
+          ticket: {
+            id: 't_1',
+            user_id: 'u_1',
+            withdrawal_id: null,
+            subject: 'Need help',
+            status: 'open',
+            created_at: '2026-04-19T00:00:00.000Z',
+            updated_at: '2026-04-19T00:00:00.000Z'
+          },
+          user: {
+            id: 'u_1',
+            username: 'demo',
+            email: 'demo@example.test',
+            created_at: '2026-04-19T00:00:00.000Z'
+          },
+          messages: [
+            {
+              id: 'm_video',
+              ticket_id: 't_1',
+              sender_role: 'user',
+              sender_name: 'demo',
+              text: 'Video question',
+              created_at: '2026-04-19T00:00:01.000Z',
+              attachments: [
+                {
+                  id: 'att_video',
+                  ticket_id: 't_1',
+                  message_id: 'm_video',
+                  name: 'circle.webm',
+                  content_type: 'video/webm',
+                  media_type: 'video',
+                  size: 12,
+                  url: '/v1/support/attachments/att_video',
+                  created_at: '2026-04-19T00:00:01.000Z'
+                }
+              ]
+            }
+          ]
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('support-chat-timeline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play video message' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
+  });
+
   it('uploads selected attachments before sending a support message', async () => {
     const user = userEvent.setup();
     const fetchMock = vi.mocked(fetch);
@@ -491,6 +543,42 @@ describe('support-admin ticket chat page', () => {
         body: JSON.stringify({ text: 'See proof', attachment_ids: ['att_1'] })
       })
     );
+  });
+
+  it('shows telegram-style previews for selected voice and video messages before sending', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TicketChatPage
+        ticketId="t_1"
+        initialPayload={{
+          ticket: {
+            id: 't_1',
+            user_id: 'u_1',
+            withdrawal_id: null,
+            subject: 'Need help',
+            status: 'open',
+            created_at: '2026-04-19T00:00:00.000Z',
+            updated_at: '2026-04-19T00:00:00.000Z'
+          },
+          user: {
+            id: 'u_1',
+            username: 'demo',
+            email: 'demo@example.test',
+            created_at: '2026-04-19T00:00:00.000Z'
+          },
+          messages: []
+        }}
+      />
+    );
+
+    await user.upload(screen.getByLabelText('Attach files'), [
+      new File(['voice'], 'voice.webm', { type: 'audio/webm' }),
+      new File(['video'], 'circle.webm', { type: 'video/webm' })
+    ]);
+
+    expect(screen.getByLabelText('Voice message preview voice.webm')).toBeInTheDocument();
+    expect(screen.getByLabelText('Video circle preview circle.webm')).toBeInTheDocument();
   });
 
   it('shows a notification when a user message arrives for support', () => {
