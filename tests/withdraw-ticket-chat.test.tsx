@@ -109,6 +109,7 @@ describe('withdraw ticket chat', () => {
     closeMock.mockReset();
     vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+    vi.spyOn(window.HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     vi.stubGlobal('EventSource', MockEventSource as unknown as typeof EventSource);
     vi.stubGlobal('fetch', vi.fn());
   });
@@ -490,11 +491,16 @@ describe('withdraw ticket chat', () => {
     expect(screen.getByLabelText('Video playback progress circle.webm')).toBeInTheDocument();
     const playVideoButton = screen.getByRole('button', { name: 'Play video message' });
     expect(playVideoButton).toBeInTheDocument();
-    expect(screen.getByLabelText('Video message circle.webm')).toBeInTheDocument();
+    const videoMessage = screen.getByLabelText('Video message circle.webm');
+    expect(videoMessage).toBeInTheDocument();
+    expect(videoMessage).not.toHaveAttribute('src');
+    expect(videoMessage).toHaveAttribute('data-src', '/v1/support/attachments/att_video');
+    expect(screen.getByLabelText('Video preview circle.webm')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Расшифровать видео' })).toBeInTheDocument();
 
     await userEvent.click(playVideoButton);
 
+    expect(videoMessage).toHaveAttribute('src', '/v1/support/attachments/att_video');
     const pauseVideoButton = screen.getByRole('button', { name: 'Pause video message' });
     expect(pauseVideoButton).toBeInTheDocument();
     expect(pauseVideoButton).toHaveAttribute('data-state', 'playing');

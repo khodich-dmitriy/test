@@ -32,6 +32,8 @@ export function RecordingMediaPreview({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [readyVideoStream, setReadyVideoStream] = useState<MediaStream | null>(null);
+  const isVideoPreviewReady = Boolean(videoStream && readyVideoStream === videoStream);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -39,15 +41,21 @@ export function RecordingMediaPreview({
     if (video) {
       video.srcObject = videoStream;
     }
-
-    if (video && videoStream) {
-      const playPromise = video.play();
-
-      if (playPromise) {
-        void playPromise.catch(() => {});
-      }
-    }
   }, [videoStream]);
+
+  function playPreviewVideo() {
+    const video = videoRef.current;
+    if (!video || !videoStream) {
+      return;
+    }
+
+    setReadyVideoStream(videoStream);
+    const playPromise = video.play();
+
+    if (playPromise) {
+      void playPromise.catch(() => {});
+    }
+  }
 
   useEffect(() => {
     if (!isRecordingVideo) {
@@ -77,8 +85,22 @@ export function RecordingMediaPreview({
           <span className={styles.recordingDot} aria-hidden="true" />
           <span className={styles.videoTimer}>{formatElapsedTime(elapsedSeconds)}</span>
         </div>
-        <div className={styles.videoPreviewLarge} aria-label="Recording video circle preview">
-          <video ref={videoRef} muted autoPlay playsInline />
+        <div
+          className={styles.videoPreviewLarge}
+          data-ready={isVideoPreviewReady ? 'true' : 'false'}
+          aria-label="Recording video circle preview"
+        >
+          <video
+            ref={videoRef}
+            muted
+            autoPlay
+            playsInline
+            onLoadedMetadata={playPreviewVideo}
+            onCanPlay={playPreviewVideo}
+          />
+          {!isVideoPreviewReady ? (
+            <span className={styles.videoPreparing}>Подготавливаем камеру...</span>
+          ) : null}
         </div>
         <button
           className={styles.videoStopButton}

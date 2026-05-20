@@ -22,6 +22,7 @@ describe('support chat recording preview', () => {
     expect(screen.getByTestId('chat-shell')).toBeEmptyDOMElement();
     expect(overlay.parentElement).toBe(document.body);
     expect(screen.getByLabelText('Recording video circle preview')).toBeInTheDocument();
+    expect(screen.getByText('Подготавливаем камеру...')).toBeInTheDocument();
     expect(screen.getByText('00:00')).toBeInTheDocument();
   });
 });

@@ -109,6 +109,7 @@ export function SupportChatTimeline({
   const [pickerStyle, setPickerStyle] = useState<CSSProperties>({});
   const [playingMediaIds, setPlayingMediaIds] = useState<Record<string, boolean>>({});
   const [mediaProgressIds, setMediaProgressIds] = useState<Record<string, number>>({});
+  const [mediaReadyIds, setMediaReadyIds] = useState<Record<string, boolean>>({});
   const mediaRefs = useRef<Record<string, HTMLMediaElement | null>>({});
   const timelineItems = useMemo(() => {
     return messages.flatMap((message, index) => {
@@ -165,6 +166,10 @@ export function SupportChatTimeline({
     const isPlaying = Boolean(playingMediaIds[id]) || !media.paused;
 
     if (!isPlaying) {
+      if (!media.getAttribute('src') && media.dataset.src) {
+        media.setAttribute('src', media.dataset.src);
+        media.load();
+      }
       setPlayingMediaIds((current) => ({ ...current, [id]: true }));
       const playPromise = media.play();
 
@@ -290,12 +295,16 @@ export function SupportChatTimeline({
                             mediaRefs.current[attachment.id] = element;
                           }}
                           className={styles.videoAttachment}
-                          src={attachment.url}
+                          data-src={attachment.url}
+                          data-ready={mediaReadyIds[attachment.id] ? 'true' : 'false'}
                           aria-label={`Video message ${attachment.name}`}
                           playsInline
-                          preload="auto"
+                          preload="none"
                           onClick={() => toggleMedia(attachment.id)}
-                          onLoadedMetadata={() => syncMediaProgress(attachment.id)}
+                          onLoadedData={() => {
+                            setMediaReadyIds((current) => ({ ...current, [attachment.id]: true }));
+                            syncMediaProgress(attachment.id);
+                          }}
                           onTimeUpdate={() => syncMediaProgress(attachment.id)}
                           onPlay={() =>
                             setPlayingMediaIds((current) => ({ ...current, [attachment.id]: true }))
@@ -308,6 +317,16 @@ export function SupportChatTimeline({
                             setMediaProgressIds((current) => ({ ...current, [attachment.id]: 1 }));
                           }}
                         />
+                        {!mediaReadyIds[attachment.id] ? (
+                          <button
+                            className={styles.videoPlaceholder}
+                            type="button"
+                            aria-label={`Video preview ${attachment.name}`}
+                            onClick={() => toggleMedia(attachment.id)}
+                          >
+                            <span aria-hidden="true" />
+                          </button>
+                        ) : null}
                         <svg
                           className={styles.videoProgress}
                           viewBox="0 0 100 100"

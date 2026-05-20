@@ -4,6 +4,16 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('withdraw ticket chat layout', () => {
+  it('mounts the chat client-only on the withdrawal details page', () => {
+    const detailsPage = readFileSync(
+      path.join(process.cwd(), 'src/views/withdraw-details/ui/withdraw-details-page.tsx'),
+      'utf8'
+    );
+
+    expect(detailsPage).toContain("import('@/src/features/support/chat/ui/withdraw-ticket-chat')");
+    expect(detailsPage).toContain('ssr: false');
+  });
+
   it('keeps bottom video controls above the shell footer fade zone', () => {
     const clientCss = readFileSync(
       path.join(process.cwd(), 'src/features/support/chat/ui/withdraw-ticket-chat.module.css'),

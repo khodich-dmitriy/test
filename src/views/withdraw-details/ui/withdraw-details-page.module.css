@@ -52,6 +52,12 @@
   margin-top: 20px;
 }
 
+.chatLoading {
+  margin: 20px 0 0;
+  color: var(--details-muted-text-color);
+  font-size: 13px;
+}
+
 .notFound {
   color: var(--error-text-color);
   font-weight: 600;
